@@ -1,0 +1,9 @@
+# Written by the scraper's export-web (JSON + PDFs). Regenerate it; never edit it by hand.
+# slugs.json stays in git: it keeps published URLs the same even if content/ is lost.
+/content/*
+!/content/slugs.json
+
+# Local settings (site_url on the server, etc.)
+/config.local.php
+
+.DS_Store

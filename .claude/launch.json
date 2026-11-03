@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "legalquery-web",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["-S", "localhost:8800", "-t", "public", "router.php"],
+      "port": 8800
+    }
+  ]
+}
