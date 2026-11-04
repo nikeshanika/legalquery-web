@@ -7,11 +7,12 @@
  *
  * The thumbnail is a demo image for now; swap $thumb for real first-page thumbnails later.
  *
+ * @var LegalQueryWeb\View $view
  * @var list<array{filename: string, language: string, size: ?int, sha256?: string}> $files
  */
 use LegalQueryWeb\Url;
 
-$thumb = '/assets/img/pdf-thumb-demo.svg';
+$thumb = $view->asset('/assets/img/pdf-thumb-demo.svg');
 $file = english_file($files);
 if (!$file) {
     return;

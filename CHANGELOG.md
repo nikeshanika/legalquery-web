@@ -12,7 +12,7 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 - Content is format 2 (Act folders, `docs/CONTENT.md`), last exported 2026-11-02: 360 Acts,
   18,062 sections, 344 schedules, 8,228 distinct PDFs (all hard links to the scraper's `data/`),
   63 linked PDFs not downloaded yet (India Code links), no mismatched files.
-- Local server: `./dev.sh serve` → http://localhost:8800.
+- Local server: `./dev.sh serve` → http://localhost:8800 (`HOST=0.0.0.0 ./dev.sh serve` to share it on the LAN).
 
 ## Owner decisions
 
@@ -52,7 +52,7 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   in `index.json` (scraper export change + `docs/CONTENT.md`).
 - "Browse by ministry" (India Code has it) would need new URLs: owner to decide.
 - Push to a GitHub repo (`legalquery-web`) — needs the owner's OK and the repo.
-- Production: domain for `site_url`, hosting, `rsync` of `content/`.
+- Production (indiacode.legalquery.in, Apache, live 2026-11-04): `rsync` of `content/` still to do.
 - SEO, needs the scraper export: a `content_changed_at` per Act (date the text last really
   changed) for `<lastmod>` in the sitemap and `dateModified`; `last_checked_at` is only the crawl
   date, so it is not used (Google ignores lastmod that changes on every crawl).
@@ -62,6 +62,35 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   PDF thumbnails, State Acts when the scraper has them.
 
 ## History
+
+### 2026-11-04 — Server: indiacode.legalquery.in on Apache
+- Apache 2.4 + PHP 8.3-FPM; code in `/var/www/html/indiacode.legalquery.in` (git pull). DocumentRoot is
+  `…/public` in both vhosts (`indiacode.legalquery.in.conf` :80 redirect and `…-le-ssl.conf`); before that the
+  repo root was the web root: CSS 404 and `.git`, `config.php`, `src/`, `content/` downloadable.
+- `config.local.php` on the server: `site_url` = `https://indiacode.legalquery.in`.
+- `content/` not uploaded yet (only `central/index.json` etc.), so every Act page 404s: rsync it (README Deploy).
+- `dev.sh`: `serve()` had been commented out locally (`./dev.sh serve` → "serve: command not found"); restored.
+- Checked (live, curl): `/`, `/assets/css/site.css`, `/assets/js/site.js`, `/favicon.png`, `/robots.txt`,
+  `/sitemap.xml`, `/acts/central`, `/acts/central/2026`, `/search?q=act` 200; `/.git/config`, `/config.php`,
+  `/config.local.php`, `/content/slugs.json`, `/dev.sh` 404; `/acts/central/<act>` 404 (no content yet).
+  Local: `bash -n dev.sh` ok, `PORT=8812 ./dev.sh serve` → 200, `php -l` ok, `php tests/run.php` → 94 checks passed.
+
+### 2026-11-04 — Asset links built from `site_url`
+- Owner: CSS/JS/image links use `site_url`. New `View::asset()` (= `absolute()` for files under `public/`);
+  `layout.php` (favicons, `site.css`, `site.js`, share image) and `partials/act-pdfs.php` (thumbnail) use it.
+- Note: `HOST=0.0.0.0 ./dev.sh serve` from another machine now needs `site_url` set to the LAN URL in
+  `config.local.php`, or the CSS loads from `localhost`.
+- Server (indiacode.legalquery.in): DocumentRoot must still be `…/public` (both :80 and the SSL vhost), else
+  `/assets/…` and page URLs 404 and the repo root (`config.local.php`, `.git`, `content/`) is public.
+- Checked: `php -l` on all files ok; `php tests/run.php` → 94 checks passed; local server: home page links
+  `http://localhost:8800/assets/css/site.css?v=10`, `…/site.js?v=3`, favicons, og:image; Act page thumbnail
+  `http://localhost:8800/assets/img/pdf-thumb-demo.svg`; `site.css` 200.
+
+### 2026-11-04 — `dev.sh`: HOST option to share the dev server on the LAN
+- `HOST` (default `localhost`) next to `PORT`; `HOST=0.0.0.0 ./dev.sh serve` binds all interfaces and prints the
+  LAN URL (e.g. http://192.168.1.124:8800). README run block updated.
+- Checked: `bash -n dev.sh` ok; `HOST=0.0.0.0 PORT=8899 ./dev.sh serve` → `curl http://192.168.1.124:8899/` 200,
+  `curl http://localhost:8899/` 200.
 
 ### 2026-11-04 — PDFs: one "View" button, English only, no language buttons (owner)
 - Owner: no "Bilingual" / language buttons for now; buttons say "View"; show English only.

@@ -12,7 +12,7 @@ use LegalQueryWeb\Seo;
 $site = $view->config['site_name'];
 $title = $meta['title'] . ' | ' . $site;
 $image = (string) $view->config['share_image'];
-$image = str_starts_with($image, 'http') ? $image : $view->absolute($image);
+$image = str_starts_with($image, 'http') ? $image : $view->asset($image);
 ?>
 <!doctype html>
 <html lang="en-IN">
@@ -49,10 +49,10 @@ $image = str_starts_with($image, 'http') ? $image : $view->absolute($image);
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#1e3a8a">
-  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="/favicon.png" type="image/png" sizes="48x48">
-  <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
-  <link rel="stylesheet" href="/assets/css/site.css?v=10">
+  <link rel="icon" href="<?= e($view->asset('/assets/img/favicon.svg')) ?>" type="image/svg+xml">
+  <link rel="icon" href="<?= e($view->asset('/favicon.png')) ?>" type="image/png" sizes="48x48">
+  <link rel="apple-touch-icon" href="<?= e($view->asset('/assets/img/apple-touch-icon.png')) ?>">
+  <link rel="stylesheet" href="<?= e($view->asset('/assets/css/site.css?v=10')) ?>">
 <?php foreach ($meta['schema'] as $block): ?>
   <?= Seo::script($block) ?>
 <?php endforeach; ?>
@@ -63,6 +63,6 @@ $image = str_starts_with($image, 'http') ? $image : $view->absolute($image);
 <?= $content ?>
 </main>
 <?= $view->partial('footer') ?>
-<script src="/assets/js/site.js?v=3" defer></script>
+<script src="<?= e($view->asset('/assets/js/site.js?v=3')) ?>" defer></script>
 </body>
 </html>

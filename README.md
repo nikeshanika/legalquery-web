@@ -16,6 +16,7 @@ Needs PHP 8.1+ (`brew install php`) and the scraper project next to this one.
 ./dev.sh            # export from the scraper, then serve http://localhost:8800
 ./dev.sh export     # only refresh content/
 ./dev.sh serve      # only serve
+HOST=0.0.0.0 ./dev.sh serve   # also reachable from the LAN, e.g. http://192.168.1.124:8800
 ```
 
 Example page: http://localhost:8800/acts/central/kerala-alteration-of-name-act-2026

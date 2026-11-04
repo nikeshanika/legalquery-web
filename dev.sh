@@ -3,11 +3,13 @@
 #   ./dev.sh          export completed Acts from the scraper, then serve http://localhost:8800
 #   ./dev.sh export   only export (scraper → content/)
 #   ./dev.sh serve    only serve
-# SCRAPER_DIR (default ../indiacode-scraper) and PORT (default 8800) can be overridden.
+# SCRAPER_DIR (default ../indiacode-scraper), HOST (default localhost) and PORT (default 8800) can be
+# overridden. HOST=0.0.0.0 ./dev.sh serve  makes it reachable from other machines on the network.
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$(pwd)"
 SCRAPER_DIR="${SCRAPER_DIR:-$ROOT/../indiacode-scraper}"
+HOST="${HOST:-localhost}"
 PORT="${PORT:-8800}"
 
 export_content() {
@@ -15,8 +17,12 @@ export_content() {
 }
 
 serve() {
-  echo "Serving http://localhost:$PORT  (Ctrl+C to stop)"
-  php -S "localhost:$PORT" -t public router.php
+  if [ "$HOST" = "0.0.0.0" ]; then
+    echo "Serving http://localhost:$PORT and http://$(ipconfig getifaddr en0 2>/dev/null || hostname):$PORT  (Ctrl+C to stop)"
+  else
+    echo "Serving http://$HOST:$PORT  (Ctrl+C to stop)"
+  fi
+  php -S "$HOST:$PORT" -t public router.php
 }
 
 case "${1:-all}" in

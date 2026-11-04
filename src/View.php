@@ -81,6 +81,14 @@ final class View
     }
 
     /**
+     * URL of a file under public/ (CSS, JS, images), built from site_url like absolute().
+     */
+    public function asset(string $path): string
+    {
+        return $this->absolute('/' . ltrim($path, '/'));
+    }
+
+    /**
      * @param array<string, mixed> $vars
      */
     private function render(string $template, array $vars): string
