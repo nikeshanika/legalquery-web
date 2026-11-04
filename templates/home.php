@@ -1,8 +1,7 @@
 <?php
 /**
- * Home page, laid out like India Code's home (search band, counts, recent Acts, categories,
- * references)
- * in LegalQuery colours.
+ * Home page, laid out like India Code's home (search band, counts, recent Acts, categories)
+ * in LegalQuery colours. No outside reference links (owner 2026-11-03).
  *
  * @var LegalQueryWeb\View $view
  * @var array{acts: int, sections: int, schedules: int} $counts
@@ -20,21 +19,6 @@ $stats = [
     ['Sections', $counts['sections'], 'gold', ['Search sections', Url::search()]],
     ['Schedules', $counts['schedules'], 'green', null],
     ['Years', $year_count, 'violet', null],
-];
-$references = [
-    'Ministry links' => [
-        ['Ministry of Law and Justice', 'https://lawmin.gov.in/'],
-        ['Legislative Department', 'https://legislative.gov.in/'],
-        ['Department of Legal Affairs', 'https://legalaffairs.gov.in/'],
-    ],
-    'Related portals' => [
-        ['India.gov.in', 'https://www.india.gov.in/'],
-        ['e-Gazette of India', 'https://egazette.gov.in/'],
-    ],
-    'Courts' => [
-        ['Supreme Court of India', 'https://www.sci.gov.in/'],
-        ['eCourts Services', 'https://ecourts.gov.in/'],
-    ],
 ];
 ?>
 <section class="home-band">
@@ -99,20 +83,6 @@ $references = [
     <a class="card cat-card" href="<?= e(Url::actList()) ?>"><strong>Acts</strong><span><?= number_format($counts['acts']) ?> Central Acts</span></a>
 <?php foreach ($categories as $tab => $n): ?>
     <a class="card cat-card" href="<?= e(Url::category($tab)) ?>"><strong><?= e(collection_label(ActController::TABS[$tab], true)) ?></strong><span>under <?= number_format($n) ?> <?= $n === 1 ? 'Act' : 'Acts' ?></span></a>
-<?php endforeach; ?>
-  </div>
-</section>
-
-<section class="references">
-  <h2>Important references</h2>
-  <div class="ref-grid">
-<?php foreach ($references as $title => $links): ?>
-    <div class="card">
-      <h3><?= e($title) ?></h3>
-<?php foreach ($links as [$label, $url]): ?>
-      <a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($label) ?> ↗</a>
-<?php endforeach; ?>
-    </div>
 <?php endforeach; ?>
   </div>
 </section>

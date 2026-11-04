@@ -1,7 +1,7 @@
 <?php
 /**
  * Site footer with the India Code source note (plain text: no India Code URL anywhere on the site,
- * owner 2026-11-03). Only this site's pages and official references; no links to legalquery.in
+ * owner 2026-11-03). Only this site's pages and official sources; no links to legalquery.in
  * pages (owner, 2026-11-02). Change the footer here only.
  *
  * @var LegalQueryWeb\View $view

@@ -10,7 +10,7 @@ use LegalQueryWeb\Url;
 
 /**
  * Home page (laid out like India Code's home): search band, counts, latest Acts, browse by year,
- * browse by category, official references.
+ * browse by category.
  */
 final class HomeController extends Controller
 {

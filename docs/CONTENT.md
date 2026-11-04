@@ -15,6 +15,8 @@ Format 1 (one JSON file per Act, PDFs only under `files/<ab>/<sha256>.pdf`) is n
 ## What gets exported
 
 - Acts with `crawl_status = 'completed'` whose own PDFs (Act + schedule PDFs) are all downloaded.
+  Schedule PDFs are **not exported** (owner, 2026-11-03): every schedule's text is exported and the Act's PDF
+  contains the schedules.
   Anything half-scraped is never exported.
 - The scraper DB is opened read-only, in one snapshot.
 - **No India Code URL anywhere in `content/`** (owner, 2026-11-03). India Code Act links in that HTML point to
@@ -53,7 +55,6 @@ content/
         pdf/
           A2013-18.pdf                the Act's own PDFs (act.json files[])
           H2013-18.pdf
-          schedules/<file>.pdf        schedule PDFs
           rules/<file>.pdf            PDFs of the documents in rules.json (same for every tab; a
                                       document linked only from a section goes in the folder of
                                       its collection's tab, or other/)
@@ -94,7 +95,10 @@ content/
 
 `sections/<slug>.json`: `uuid`, `slug`, `number`, `heading`, `body_html`, `footnote_html`, `linked`.
 `schedules/<slug>.json`: `uuid`, `slug`, `heading`, `body_html`, `body_text` (plain text when there
-is no HTML), `files` (schedule PDFs), `linked`.
+is no HTML), `linked`. (No `files`: schedule PDFs are not exported since 2026-11-03.)
+
+The section and schedule files feed the Act page's Sections and Schedules tabs; there is no page per
+section or schedule (owner, 2026-11-03; old URLs 301 to the tab, see `URLS.md`).
 
 `linked` is the list of documents linked to that provision, each a *Document* (below), newest first.
 

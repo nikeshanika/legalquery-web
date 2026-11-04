@@ -52,7 +52,7 @@ $image = str_starts_with($image, 'http') ? $image : $view->absolute($image);
   <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon.png" type="image/png" sizes="48x48">
   <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
-  <link rel="stylesheet" href="/assets/css/site.css?v=7">
+  <link rel="stylesheet" href="/assets/css/site.css?v=9">
 <?php foreach ($meta['schema'] as $block): ?>
   <?= Seo::script($block) ?>
 <?php endforeach; ?>

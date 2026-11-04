@@ -99,3 +99,13 @@ function provision_heading(array $item): string
         && str_contains(mb_strtolower($heading), mb_strtolower($label));
     return $heading !== '' && !$repeats ? "$label: $heading" : $label;
 }
+
+/**
+ * Plain text extracted from a PDF (schedules), tidied for display only: trailing spaces cut, runs of
+ * blank lines become one. The words themselves are not touched.
+ */
+function tidy_text(string $text): string
+{
+    $lines = array_map('rtrim', preg_split('/\R/u', $text) ?: []);
+    return trim(preg_replace('/\n{3,}/', "\n\n", implode("\n", $lines)) ?? '', "\n");
+}

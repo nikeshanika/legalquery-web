@@ -36,11 +36,16 @@ final class Url
     }
 
     /**
-     * A section or schedule page, e.g. /acts/central/companies-act-2013/section-2a.
+     * Where a section or schedule is shown: in its Act's Sections tab (page N) or Schedules tab,
+     * e.g. /acts/central/companies-act-2013/page/2#section-25. Sections and schedules have no
+     * page of their own (owner, 2026-11-03); their old URLs 301 here.
+     *
+     * @param string $kind SECTION or SCHEDULE
      */
-    public static function provision(string $actSlug, string $slug): string
+    public static function provision(string $actSlug, string $slug, string $kind = 'SECTION', int $page = 1): string
     {
-        return self::act($actSlug) . '/' . rawurlencode($slug);
+        $base = $kind === 'SCHEDULE' ? self::act($actSlug, 'schedules') : self::paged(self::act($actSlug), $page);
+        return $base . '#' . rawurlencode($slug);
     }
 
     /**

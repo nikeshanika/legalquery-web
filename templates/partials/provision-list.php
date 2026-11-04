@@ -1,15 +1,13 @@
 <?php
 /**
  * Sections or schedules that expand in place. Each row has the provision's slug as id,
- * so ".../act#section-2" opens Section 2; its own page is linked inside the row.
+ * so ".../act#section-2" opens Section 2. There is no separate page per section (owner, 2026-11-03).
  *
  * @var LegalQueryWeb\View $view
  * @var array<string, mixed> $act
  * @var list<array<string, mixed>> $list
  * @var string $kind SECTION or SCHEDULE
  */
-use LegalQueryWeb\Url;
-
 ?>
 <div class="sec-list" data-sections>
   <div class="sec-list-head"><?= $kind === 'SCHEDULE' ? 'Schedule' : 'Section' ?></div>
@@ -26,7 +24,6 @@ use LegalQueryWeb\Url;
     </summary>
     <div class="sec-body">
       <?= $view->partial('provision-body', ['act' => $act, 'item' => $item]) ?>
-      <div class="sec-tools"><a class="linkbtn" href="<?= e(Url::provision($act['slug'], $item['slug'])) ?>">Open <?= e($label) ?> on its own page ›</a></div>
     </div>
   </details>
 <?php endforeach; ?>

@@ -103,6 +103,10 @@ check('paged drops empty', Url::paged('/acts/central', 2, ['search' => '']), '/a
 check('category url', Url::category('rules'), '/rules');
 check('file url', Url::file(['sha256' => 'ff', 'filename' => 'A 2026, 9.pdf']), '/files/ff/A-2026-9.pdf');
 check('file url download', Url::file(['sha256' => 'ff', 'filename' => 'x'], true), '/files/ff/x.pdf?download=1');
+// Sections and schedules have no page of their own (owner, 2026-11-03): they live in the Act's tabs.
+check('section url', Url::provision('companies-act-2013', 'section-2a'), '/acts/central/companies-act-2013#section-2a');
+check('section url page 2', Url::provision('companies-act-2013', 'section-25', 'SECTION', 2), '/acts/central/companies-act-2013/page/2#section-25');
+check('schedule url', Url::provision('companies-act-2013', 'first-schedule', 'SCHEDULE'), '/acts/central/companies-act-2013/schedules#first-schedule');
 
 // ---- pagination ----
 $link = fn(int $n): string => Url::paged('/l', $n);
@@ -181,8 +185,6 @@ $fixture = $content->act('kerala-alteration-of-name-act-2026');
 $law = Seo::act($fixture, $abs);
 check('legislation', [$law['@type'], $law['url'], $law['legislationIdentifier'], $law['legislationDate']],
     ['Legislation', 'https://example.org/acts/central/kerala-alteration-of-name-act-2026', 'Act No. 18 of 2026', '2026-08-14']);
-$part = Seo::provision($fixture, $fixture['sections'][0] + ['kind' => 'SECTION'], 'Section 1', $abs);
-check('provision part of act', $part['isPartOf']['@id'], $law['@id']);
 check('json-ld closes safely', str_contains(Seo::script(['name' => '</script><b>']), '</script><b>'), false);
 check('website search', Seo::website('LQ', $abs)['potentialAction']['target']['urlTemplate'], 'https://example.org/search?q={search_term_string}');
 
@@ -195,6 +197,7 @@ check('label schedule', provision_label(['kind' => 'SCHEDULE', 'slug' => 'first-
 check('heading', provision_heading(['number' => '2', 'heading' => 'Definitions.']), 'Section 2: Definitions');
 check('heading repeat', provision_heading(['kind' => 'SCHEDULE', 'slug' => 'first-schedule', 'heading' => 'THE FIRST SCHEDULE']), 'First Schedule');
 check('escape', e('<a href="x">'), '&lt;a href=&quot;x&quot;&gt;');
+check('tidy text', tidy_text("7 \n \n\nTHE FIRST SCHEDULE \n\n\n \n1.   Act  \n \n "), "7\n\nTHE FIRST SCHEDULE\n\n1.   Act");
 
 echo $failures ? "\n$failures of $count checks failed\n" : "$count checks passed\n";
 exit($failures ? 1 : 0);

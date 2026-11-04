@@ -21,13 +21,20 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 - Same URL rules as the LegalQuery Drupal module plan (lowercase slugs, `/page/N`, permanent slugs).
 - 2026-11-02: layout and content like India Code; only colours from legalquery.in. This site has its
   own pages only: no legalquery.in menu items, footer links, Login or "Ask a lawyer" button.
+- 2026-11-03: **no page per section or schedule**: they are shown only inside the Act's Sections / Schedules
+  tabs; old `…/section-2a` and `…/first-schedule` URLs 301 there (with `#slug`). **No schedule PDFs**
+  (`a2025-37_shed._l.pdf` …): the schedule text is shown (owner).
 - 2026-11-03: **no India Code URLs** anywhere: not in `content/` (the export rewrites/removes them), not in the
   templates. "Source: India Code, Government of India" stays as plain text (owner).
+- 2026-11-03: no "Important references" block and no india.gov.in link on the site, so it doesn't look like a
+  government-portal clone (owner).
 - 2026-11-02: `content/` folders follow the pages: `central/acts/<act>/` with `act.json`, `sections/`,
   `schedules/`, one file per tab, and the Act's PDFs in `pdf/` (content format 2).
 
 ## Pending
 
+- Scraper export (not this project): schedule `body_text` is raw PDF text: 364 of 402 start with the PDF page number
+  (e.g. "7"), 16 contain the broken India Code watermark ("In / diaC / ode"). Clean it in the export.
 - Before all States / the full data set: content format 3 (split `files.json` by sha256 prefix; it is read on every
   PDF request) and jurisdiction-generic code (`central` is hard-coded in Content/Url/Router/Seo). See the scraper's
   CHANGELOG (2026-11-03).
@@ -54,6 +61,56 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   PDF thumbnails, State Acts when the scraper has them.
 
 ## History
+
+### 2026-11-03 — Schedules show their text ("No PDF is published" gone)
+- Cause: the scraper stopped exporting schedule PDFs (same day, owner), but `partials/schedule-item.php` still showed
+  only a PDF panel + metadata and hid the text, so all 402 schedules said "No PDF is published for this schedule."
+- `partials/provision-body.php`: schedules now show `body_text` like sections (tidied for display by the new
+  `tidy_text()` in `src/helpers.php`: trailing spaces cut, blank-line runs collapsed; words untouched).
+  `partials/schedule-item.php` and its `.item-*` CSS removed; CSS `?v=9`.
+- Checks run: `php -l` clean; `php tests/run.php` → **92 checks passed** (new `tidy text`); `/schedules` of three Acts
+  → 200, no "No PDF" text; Central Armed Police Forces Act schedules open with text in the browser, no console errors,
+  no horizontal scroll.
+
+### 2026-11-03 — Breadcrumbs checked on every page; Act tabs fixed
+- Checked the visible trail and the `BreadcrumbList` JSON-LD on home, Central Acts (+ page 2, year, `?search=`),
+  category pages (+ page 2), search (+ page 2), the Act's Sections tab (+ page 2), Schedules, Act Details,
+  linked-document tabs and 404s. All were right except the Act tabs.
+- Bug: Schedules / Act Details / Rules / Notifications / … showed `Home › Central Acts › <Act>` (same as the Sections
+  tab: Act not a link, tab not named). `templates/partials/act-head.php` now gives
+  `Home › Central Acts › <Act (link)> › <Tab>` on every tab but Sections; JSON-LD follows (same partial).
+- Unchanged on purpose: paged lists keep the page-1 trail; error pages and home have no breadcrumb; old section URLs
+  301 to the Act page, so they have none.
+- Checks run: `php -l` clean; `php tests/run.php` → **91 checks passed**; curl of each page type above (trail + JSON-LD
+  as expected); Act Details of a long Hindi-title Act at 375 px: trail wraps, no horizontal scroll, no console errors.
+
+### 2026-11-03 — No section/schedule pages; no schedule PDFs (owner)
+- `src/Url.php`: `Url::provision($act, $slug, $kind, $page)` now gives the place inside the Act page:
+  `/acts/central/{act}[/page/N]#section-2a` or `/acts/central/{act}/schedules#first-schedule`.
+- `ActController::provision`: the old single-page URLs answer **301** to that place (404 for an unknown slug);
+  `templates/provision.php` and `Seo::provision` are removed. `Controller::provisionUrl()` works out page N
+  (`per_page`).
+- `partials/provision-list.php`: the "Open Section … on its own page" link is removed. Search results link to the
+  anchor (`SearchController` adds `url` for the hits on the shown page only). The sitemap no longer lists sections or
+  schedules.
+- Schedule PDFs: no longer exported by the scraper (all 387 schedules have their text); `docs/CONTENT.md` updated.
+- Content re-exported the same day: 440 Acts; 0 `pdf/schedules/` files left (the 382 schedule-PDF hashes were dropped
+  from `files.json`, so their `/files/<sha256>/…` URLs now 404, as intended).
+- Docs: `docs/URLS.md` and `docs/CONTENT.md`.
+- Checks: `php -l` on all PHP files OK; `php tests/run.php` **91 checks passed** (3 new for the anchor URLs).
+  Live on :8800, on the VB-G RAM G Act, 2025 page: `/section-1` → 301 `…#section-1`; `/section-25` → 301
+  `…/page/2#section-25`; `/first-schedule` → 301 `…/schedules#first-schedule`; `/section-999` → 404. The Act page has
+  0 "own page" links and 20 section anchors; the sitemap has 0 section URLs; search results link to `#section-…`.
+  In the browser, the old `/section-25` URL lands on page 2 with Section 25 open at the top of the view.
+
+### 2026-11-03 — Home: "Important references" removed, no india.gov.in link (owner)
+- `templates/home.php`: the "Important references" section (ministry, portal and court links, incl. India.gov.in) is
+  gone, so the site doesn't look like a copy of a government portal. Its CSS (`.references`, `.ref-grid`) removed;
+  CSS `?v=8`. Comments in `HomeController`/footer and `docs/URLS.md` updated. Footer "Official sources" unchanged
+  (Legislative Department, e-Gazette). No URL changes.
+- Checks run: `php -l` clean; `php tests/run.php` → **89 checks passed**; home in the browser: no `.references`,
+  no `india.gov.in` in the HTML, no horizontal scroll, no console errors. `grep india.gov.in` over templates/src/
+  public/docs/content → 0.
 
 ### 2026-11-03 — No India Code URLs on the site (owner)
 - Templates: footer "Official sources" and home "Related portals" lose the India Code link; the footer source note

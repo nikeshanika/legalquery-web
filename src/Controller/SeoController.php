@@ -79,9 +79,6 @@ final class SeoController extends Controller
                 $urls[] = Url::act($act['slug'], $tab);
             }
         }
-        foreach ($this->content->searchRows() as [$actSlug, $slug]) {
-            $urls[] = Url::provision($actSlug, $slug);
-        }
         return $urls;
     }
 

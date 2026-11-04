@@ -6,12 +6,13 @@ namespace LegalQueryWeb\Controller;
 
 use LegalQueryWeb\HttpError;
 use LegalQueryWeb\Pager;
+use LegalQueryWeb\Redirect;
 use LegalQueryWeb\Seo;
 use LegalQueryWeb\Url;
 
 /**
- * An Act and its tabs: Sections (paged), Schedules, Act Details, linked documents,
- * and single section / schedule pages.
+ * An Act and its tabs: Sections (paged), Schedules, Act Details, linked documents. Sections and
+ * schedules are shown only inside these tabs; their old single-page URLs redirect there.
  */
 final class ActController extends Controller
 {
@@ -135,52 +136,13 @@ final class ActController extends Controller
     }
 
     /**
-     * One section (section-2a) or schedule (first-schedule) on its own page.
+     * The old URL of a section (section-2a) or schedule (first-schedule): they have no page of
+     * their own any more (owner, 2026-11-03), so 301 to where the Act page shows them.
      */
     public function provision(string $act, string $provision): void
     {
         $row = $this->loadAct($act);
-        $list = array_merge(
-            array_map(fn(array $s): array => $s + ['kind' => 'SECTION'], $row['sections']),
-            array_map(fn(array $s): array => $s + ['kind' => 'SCHEDULE'], $row['schedules']),
-        );
-        $index = null;
-        foreach ($list as $i => $item) {
-            if ($item['slug'] === $provision) {
-                $index = $i;
-                break;
-            }
-        }
-        if ($index === null) {
-            throw new HttpError(404);
-        }
-        $item = $this->content->provision($act, $list[$index]['kind'], $provision) ?? throw new HttpError(404);
-        $neighbour = function (int $i) use ($list, $item, $act): ?array {
-            $other = $list[$i] ?? null;
-            // Previous/next stay within sections or within schedules.
-            if (!$other || $other['kind'] !== $item['kind']) {
-                return null;
-            }
-            return ['label' => provision_label($other), 'heading' => $other['heading'], 'url' => Url::provision($act, $other['slug'])];
-        };
-        $prev = $neighbour($index - 1);
-        $next = $neighbour($index + 1);
-        $heading = provision_heading($item);
-        $this->view->page('provision', [
-            'act' => $row,
-            'item' => $item,
-            'heading' => $heading,
-            'prev' => $prev,
-            'next' => $next,
-        ], [
-            'title' => $heading . ' – ' . $row['title'],
-            'description' => Seo::description((string) ($item['body_html'] ?: ($item['body_text'] ?? '')))
-                ?: "$heading of " . $row['title'] . ', with full text and official PDF.',
-            'prev' => $prev['url'] ?? null,
-            'next' => $next['url'] ?? null,
-            'type' => 'article',
-            'schema' => [Seo::provision($row, $item, $heading, $this->absolute())],
-        ]);
+        throw new Redirect($this->provisionUrl($row, $provision) ?? throw new HttpError(404), 301);
     }
 
     /**

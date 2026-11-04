@@ -130,33 +130,6 @@ final class Seo
     }
 
     /**
-     * A section or schedule as Legislation that is part of its Act.
-     *
-     * @param array<string, mixed> $act
-     * @param array<string, mixed> $item
-     *
-     * @return array<string, mixed>
-     */
-    public static function provision(array $act, array $item, string $heading, callable $absolute): array
-    {
-        return [
-            '@context' => 'https://schema.org',
-            '@type' => 'Legislation',
-            'name' => $heading,
-            'url' => $absolute(Url::provision($act['slug'], $item['slug'])),
-            'legislationIdentifier' => provision_label($item) . ', ' . $act['title'],
-            'legislationJurisdiction' => ['@type' => 'Country', 'name' => 'India'],
-            'inLanguage' => 'en',
-            'isPartOf' => [
-                '@type' => 'Legislation',
-                '@id' => $absolute(Url::act($act['slug'])) . '#act',
-                'name' => $act['title'],
-                'url' => $absolute(Url::act($act['slug'])),
-            ],
-        ];
-    }
-
-    /**
      * A <script type="application/ld+json"> block. JSON_HEX_TAG keeps "</script>" in data
      * from closing the tag.
      *

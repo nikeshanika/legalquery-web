@@ -1,29 +1,29 @@
 <?php
 /**
- * Text of a section, or a schedule's PDF and metadata (schedule-item); footnotes, linked documents.
- * body_html / footnote_html were sanitised by the scraper's export.
+ * Text of a section or schedule, footnotes, linked documents. body_html / footnote_html were sanitised by
+ * the scraper's export. Schedules have only body_text (extracted from the PDF) and no PDF of their own: the
+ * Act's PDF contains them (owner, 2026-11-03).
  *
  * @var LegalQueryWeb\View $view
  * @var array<string, mixed> $act
  * @var array<string, mixed> $item
  */
 $linked = $item['linked'] ?? [];
+$noun = ($item['kind'] ?? 'SECTION') === 'SCHEDULE' ? 'schedule' : 'section';
 ?>
-<?php if (($item['kind'] ?? 'SECTION') === 'SCHEDULE'): ?>
-<?= $view->partial('schedule-item', ['act' => $act, 'item' => $item]) ?>
-<?php elseif (($item['body_html'] ?? '') !== ''): ?>
+<?php if (($item['body_html'] ?? '') !== ''): ?>
 <div class="law-text"><?= $item['body_html'] ?></div>
 <?php elseif (($item['body_text'] ?? '') !== ''): ?>
-<pre class="schedule-text"><?= e($item['body_text']) ?></pre>
+<pre class="schedule-text"><?= e(tidy_text($item['body_text'])) ?></pre>
 <?php else: ?>
-<p class="empty">No text is published for this section.</p>
+<p class="empty">No text is published for this <?= $noun ?>.</p>
 <?php endif; ?>
 <?php if (($item['footnote_html'] ?? '') !== ''): ?>
 <div class="footnotes"><?= $item['footnote_html'] ?></div>
 <?php endif; ?>
 <?php if ($linked): ?>
 <div class="related">
-  <h4>Rules, notifications and other documents under this <?= ($item['kind'] ?? 'SECTION') === 'SCHEDULE' ? 'schedule' : 'section' ?> <span class="n"><?= count($linked) ?></span></h4>
+  <h4>Rules, notifications and other documents under this <?= $noun ?> <span class="n"><?= count($linked) ?></span></h4>
   <ul class="doclist">
 <?php foreach ($linked as $doc): ?>
     <li>

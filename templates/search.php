@@ -27,7 +27,7 @@ use LegalQueryWeb\Url;
 <?php else: ?>
   <div class="act-row">
     <div class="act-main">
-      <h3><a href="<?= e(Url::provision($hit['act']['slug'], $hit['slug'])) ?>"><span class="badge"><?= e($hit['label']) ?></span> <?= e($hit['heading']) ?></a></h3>
+      <h3><a href="<?= e($hit['url']) ?>"><span class="badge"><?= e($hit['label']) ?></span> <?= e($hit['heading']) ?></a></h3>
       <div class="meta"><?= e($hit['act']['title']) ?></div>
     </div>
   </div>

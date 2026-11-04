@@ -32,6 +32,27 @@ abstract class Controller
     }
 
     /**
+     * Where a section or schedule of an Act is shown (its Sections page N or the Schedules tab,
+     * with the provision's anchor), or null when the Act has no such provision.
+     *
+     * @param array<string, mixed> $act act.json
+     */
+    protected function provisionUrl(array $act, string $slug): ?string
+    {
+        foreach ($act['sections'] as $i => $section) {
+            if ($section['slug'] === $slug) {
+                return Url::provision($act['slug'], $slug, 'SECTION', intdiv($i, $this->perPage()) + 1);
+            }
+        }
+        foreach ($act['schedules'] as $schedule) {
+            if ($schedule['slug'] === $slug) {
+                return Url::provision($act['slug'], $slug, 'SCHEDULE');
+            }
+        }
+        return null;
+    }
+
+    /**
      * A query-string value as a trimmed string ('' when missing or not a string).
      */
     protected function queryString(string $name, int $maxLength = 200): string

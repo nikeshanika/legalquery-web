@@ -31,9 +31,18 @@ final class SearchController extends Controller
             }
         }
         $pager = Pager::make($number, count($results), $this->perPage(), $link);
+        $shown = array_slice($results, $pager['offset'], $pager['per_page']);
+        foreach ($shown as &$hit) {
+            if ($hit['type'] === 'provision') {
+                // Only the hits on this page: each needs its Act's section list for the page number.
+                $act = $this->content->act($hit['act']['slug']);
+                $hit['url'] = ($act ? $this->provisionUrl($act, $hit['slug']) : null) ?? Url::act($hit['act']['slug']);
+            }
+        }
+        unset($hit);
         $this->view->page('search', [
             'q' => $q,
-            'results' => array_slice($results, $pager['offset'], $pager['per_page']),
+            'results' => $shown,
             'pager' => $pager,
         ], [
             'title' => $this->withPage($q !== '' ? "Search: $q" : 'Search', $number),
