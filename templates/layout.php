@@ -52,7 +52,7 @@ $image = str_starts_with($image, 'http') ? $image : $view->absolute($image);
   <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon.png" type="image/png" sizes="48x48">
   <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
-  <link rel="stylesheet" href="/assets/css/site.css?v=9">
+  <link rel="stylesheet" href="/assets/css/site.css?v=10">
 <?php foreach ($meta['schema'] as $block): ?>
   <?= Seo::script($block) ?>
 <?php endforeach; ?>
@@ -63,6 +63,6 @@ $image = str_starts_with($image, 'http') ? $image : $view->absolute($image);
 <?= $content ?>
 </main>
 <?= $view->partial('footer') ?>
-<script src="/assets/js/site.js?v=2" defer></script>
+<script src="/assets/js/site.js?v=3" defer></script>
 </body>
 </html>

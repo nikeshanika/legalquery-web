@@ -37,18 +37,6 @@ function format_size(?int $bytes): string
 }
 
 /**
- * Card label for a file language code (en / hi / bi / unknown).
- */
-function language_label(string $code): string
-{
-    return [
-        'en' => 'English',
-        'hi' => 'हिन्दी',
-        'bi' => 'Bilingual',
-    ][$code] ?? 'PDF';
-}
-
-/**
  * Label for a linked-document collection or tab, e.g. RULE -> Rule / Rules.
  */
 function collection_label(string $collection, bool $plural = false): string
@@ -108,4 +96,29 @@ function tidy_text(string $text): string
 {
     $lines = array_map('rtrim', preg_split('/\R/u', $text) ?: []);
     return trim(preg_replace('/\n{3,}/', "\n\n", implode("\n", $lines)) ?? '', "\n");
+}
+
+/**
+ * The one PDF shown for a document or Act: English only for now, no language buttons (owner,
+ * 2026-11-04). Preference en, bi, other, then hi (so a Hindi-only document still has its PDF).
+ * Files not archived yet are skipped.
+ *
+ * @param list<array<string, mixed>> $files
+ *
+ * @return array<string, mixed>|null
+ */
+function english_file(array $files): ?array
+{
+    $rank = ['en' => 0, 'bi' => 1, 'hi' => 3];
+    $best = null;
+    foreach ($files as $file) {
+        if (empty($file['sha256'])) {
+            continue;
+        }
+        $r = $rank[$file['language'] ?? ''] ?? 2;
+        if ($best === null || $r < $best[0]) {
+            $best = [$r, $file];
+        }
+    }
+    return $best[1] ?? null;
 }

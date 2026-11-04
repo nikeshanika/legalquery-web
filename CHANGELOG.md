@@ -26,6 +26,7 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   (`a2025-37_shed._l.pdf` …): the schedule text is shown (owner).
 - 2026-11-03: **no India Code URLs** anywhere: not in `content/` (the export rewrites/removes them), not in the
   templates. "Source: India Code, Government of India" stays as plain text (owner).
+- 2026-11-04: PDFs show one "View" button and the English PDF only; no language buttons for now (owner).
 - 2026-11-03: no "Important references" block and no india.gov.in link on the site, so it doesn't look like a
   government-portal clone (owner).
 - 2026-11-02: `content/` folders follow the pages: `central/acts/<act>/` with `act.json`, `sections/`,
@@ -61,6 +62,20 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   PDF thumbnails, State Acts when the scraper has them.
 
 ## History
+
+### 2026-11-04 — PDFs: one "View" button, English only, no language buttons (owner)
+- Owner: no "Bilingual" / language buttons for now; buttons say "View"; show English only.
+- New `english_file()` (`src/helpers.php`) picks the one PDF shown: en, then bi, then other, then hi (69 linked
+  documents have only a Hindi PDF; they keep their "View" rather than losing the PDF). Not-archived files skipped.
+- `partials/file-links.php` (Rules, Notifications, … tabs and section docs): one "View" (+ ⤓ when not compact), no
+  language label (was "Bilingual" on 2,941 documents, "English"/"हिन्दी" on 16).
+- `partials/act-pdfs.php`: the Act header shows one English PDF; the English/हिन्दी switch (markup, `.pdf-langs`
+  CSS, `site.js` block) is removed. It is in git history (bca7d3a) for when Hindi comes back.
+  `language_label()` removed (unused). CSS `?v=10`, JS `?v=3`.
+- Checks run: `php -l` clean; `php tests/run.php` → **94 checks passed** (new `english pdf` tests); GST Act
+  Sections/Details/Rules/Notifications and Private Security Agencies Act Rules: 0 "Bilingual"/"English"/"हिन्दी"
+  labels, every button "View", the en+hi Model Rules 2020 shows only the English PDF, Act header shows `a2005-29.pdf`;
+  browser: no console errors, no horizontal scroll.
 
 ### 2026-11-03 — Schedules show their text ("No PDF is published" gone)
 - Cause: the scraper stopped exporting schedule PDFs (same day, owner), but `partials/schedule-item.php` still showed

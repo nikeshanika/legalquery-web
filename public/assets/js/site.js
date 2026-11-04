@@ -32,20 +32,6 @@
   openFragment();
   window.addEventListener('hashchange', openFragment);
 
-  // Act PDF: English shows first; the Hindi PDF only when हिन्दी is picked.
-  document.querySelectorAll('[data-pdf-switch]').forEach((box) => {
-    const group = box.querySelector('.pdf-langs');
-    if (!group) return;
-    group.hidden = false;
-    group.querySelectorAll('[data-pdf-lang]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const lang = button.dataset.pdfLang;
-        group.querySelectorAll('[data-pdf-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
-        box.querySelectorAll('.pdf-thumb').forEach((thumb) => { thumb.hidden = thumb.dataset.lang !== lang; });
-      });
-    });
-  });
-
   // The year filter applies as soon as a year is picked.
   document.querySelectorAll('select[data-autosubmit]').forEach((select) => {
     select.addEventListener('change', () => select.form.submit());

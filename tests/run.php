@@ -197,6 +197,15 @@ check('label schedule', provision_label(['kind' => 'SCHEDULE', 'slug' => 'first-
 check('heading', provision_heading(['number' => '2', 'heading' => 'Definitions.']), 'Section 2: Definitions');
 check('heading repeat', provision_heading(['kind' => 'SCHEDULE', 'slug' => 'first-schedule', 'heading' => 'THE FIRST SCHEDULE']), 'First Schedule');
 check('escape', e('<a href="x">'), '&lt;a href=&quot;x&quot;&gt;');
+$pdf = fn(string $lang, bool $archived = true): array => ['filename' => "$lang.pdf", 'language' => $lang] + ($archived ? ['sha256' => 'x'] : []);
+check('english pdf', array_column(array_filter([
+    english_file([$pdf('hi'), $pdf('en')]),
+    english_file([$pdf('hi'), $pdf('bi')]),
+    english_file([$pdf('hi'), $pdf('unknown')]),
+    english_file([$pdf('hi')]),
+    english_file([$pdf('en', false), $pdf('hi')]),
+]), 'language'), ['en', 'bi', 'unknown', 'hi', 'hi']);
+check('english pdf none', english_file([$pdf('en', false)]), null);
 check('tidy text', tidy_text("7 \n \n\nTHE FIRST SCHEDULE \n\n\n \n1.   Act  \n \n "), "7\n\nTHE FIRST SCHEDULE\n\n1.   Act");
 
 echo $failures ? "\n$failures of $count checks failed\n" : "$count checks passed\n";

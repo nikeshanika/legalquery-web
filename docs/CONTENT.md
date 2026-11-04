@@ -96,6 +96,9 @@ content/
 `sections/<slug>.json`: `uuid`, `slug`, `number`, `heading`, `body_html`, `footnote_html`, `linked`.
 `schedules/<slug>.json`: `uuid`, `slug`, `heading`, `body_html`, `body_text` (plain text when there
 is no HTML), `linked`. (No `files`: schedule PDFs are not exported since 2026-11-03.)
+Since 2026-11-04 `body_text` is clean text: no PDF page numbers, no "India Code" watermark or link
+lines, no trailing spaces, at most one blank line in a row; footnote marks sit before their passage
+(`1[THE SECOND SCHEDULE`). It can be `""` (shown as "No text is published").
 
 The section and schedule files feed the Act page's Sections and Schedules tabs; there is no page per
 section or schedule (owner, 2026-11-03; old URLs 301 to the tab, see `URLS.md`).

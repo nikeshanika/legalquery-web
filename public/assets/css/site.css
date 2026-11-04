@@ -166,10 +166,6 @@ body { overflow-x:clip; }
 .ministry-icon { width:28px; height:28px; border-radius:50%; background:var(--blue-50); display:inline-flex;
                  align-items:center; justify-content:center; font-size:14px; }
 .act-pdfs { flex:none; display:flex; flex-direction:column; align-items:center; gap:10px; width:150px; }
-.pdf-langs { display:flex; border:1px solid var(--blue-200); border-radius:999px; overflow:hidden; }
-.pdf-langs button { border:0; background:#fff; color:var(--primary-blue); font:inherit; font-size:13px; font-weight:600;
-                    padding:4px 12px; cursor:pointer; }
-.pdf-langs button[aria-pressed="true"] { background:var(--primary-blue); color:#fff; }
 .pdf-thumb { margin:0; text-align:center; }
 .pdf-thumb a { display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--primary-blue); }
 .pdf-thumb img { display:block; width:85px; height:110px; border:1px solid var(--border-color); border-radius:3px;
