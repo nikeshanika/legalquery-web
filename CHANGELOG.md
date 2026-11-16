@@ -65,7 +65,7 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## History
 
-### 2026-11-16 — Committed on branch `central-complete-2026-11-16` (not merged into `main`)
+### 2026-11-16 — Committed as `6e374b9` (branch `central-complete-2026-11-16`, fast-forwarded into `main`)
 - The 2026-11-16 entries below (jurisdiction-generic code, `SITE_URL`, `partial` Acts) and `content/slugs.json`
   (848 Acts). Left out: the untracked root `.htaccess` (2026-11-04, redirects to `public/`); it is not described
   in this file, so the owner decides.
