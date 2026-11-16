@@ -28,6 +28,10 @@
   </details>
 <?php endforeach; ?>
 <?php if (!$list): ?>
-  <p class="empty pad">No <?= $kind === 'SCHEDULE' ? 'schedules' : 'sections' ?> yet.</p>
+<?php if ($kind === 'SCHEDULE'): ?>
+  <p class="empty pad">No schedules.</p>
+<?php else: ?>
+  <p class="empty pad">India Code publishes no section-wise text for this Act. The full text is in the Act's PDF.</p>
+<?php endif; ?>
 <?php endif; ?>
 </div>

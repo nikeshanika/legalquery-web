@@ -1,6 +1,9 @@
 # URLs
 
 All URLs are built in `src/Url.php` and matched in `src/Router.php`.
+`central` in `/acts/central…` is a jurisdiction code from `src/Jurisdiction.php` (the only one
+today). Home and the category pages (`/rules` …) show Central Acts only; search covers every
+jurisdiction.
 
 | URL | Page |
 |---|---|

@@ -6,11 +6,12 @@
  * @var LegalQueryWeb\View $view
  * @var string $nav Active menu key ('home', 'acts', 'search' or '').
  */
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
 
 $menu = [
     ['Home', Url::home(), 'home'],
-    ['Central Acts', Url::actList(), 'acts'],
+    [Jurisdiction::name(Jurisdiction::DEFAULT), Url::actList(Jurisdiction::DEFAULT), 'acts'],
     ['Search', Url::search(), 'search'],
 ];
 ?>

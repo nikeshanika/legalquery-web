@@ -10,6 +10,7 @@
  * @var array<string, int> $categories tab => number of Acts
  */
 use LegalQueryWeb\Controller\ActController;
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
 
 ?>
@@ -22,7 +23,7 @@ use LegalQueryWeb\Url;
   <nav class="card filter-card" aria-label="Categories">
     <h2>Browse by category</h2>
     <div class="cat-links">
-      <a href="<?= e(Url::actList()) ?>">Acts</a>
+      <a href="<?= e(Url::actList(Jurisdiction::DEFAULT)) ?>">Acts</a>
 <?php foreach ($categories as $key => $n): ?>
       <a href="<?= e(Url::category($key)) ?>"<?= $key === $tab ? ' class="active" aria-current="page"' : '' ?>><?= e(collection_label(ActController::TABS[$key], true)) ?><span class="n"><?= number_format($n) ?></span></a>
 <?php endforeach; ?>

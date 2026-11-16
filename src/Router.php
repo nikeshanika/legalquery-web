@@ -28,7 +28,8 @@ final class Router
      */
     public static function routes(): array
     {
-        $act = '/acts/central/' . self::SLUG;
+        $list = '/acts/(?<jurisdiction>' . Jurisdiction::pattern() . ')';
+        $act = $list . '/' . self::SLUG;
         return [
             ['#^/$#', [HomeController::class, 'index']],
             ['#^/acts$#', [HomeController::class, 'acts']],
@@ -38,8 +39,8 @@ final class Router
             ['#^/robots\.txt$#', [SeoController::class, 'robots']],
             ['#^/files/(?<sha>[0-9a-f]{64})/(?<name>[A-Za-z0-9._-]{1,120})$#', [FileController::class, 'pdf']],
             ['#^/(?<category>' . self::TABS . ')' . self::PAGE . '$#', [CategoryController::class, 'index']],
-            ['#^/acts/central' . self::PAGE . '$#', [ActListController::class, 'index']],
-            ['#^/acts/central/(?<year>\d{4})' . self::PAGE . '$#', [ActListController::class, 'index']],
+            ['#^' . $list . self::PAGE . '$#', [ActListController::class, 'index']],
+            ['#^' . $list . '/(?<year>\d{4})' . self::PAGE . '$#', [ActListController::class, 'index']],
             ['#^' . $act . self::PAGE . '$#', [ActController::class, 'sections']],
             ['#^' . $act . '/schedules$#', [ActController::class, 'schedules']],
             ['#^' . $act . '/details$#', [ActController::class, 'details']],

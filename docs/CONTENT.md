@@ -14,7 +14,9 @@ Format 1 (one JSON file per Act, PDFs only under `files/<ab>/<sha256>.pdf`) is n
 
 ## What gets exported
 
-- Acts with `crawl_status = 'completed'` whose own PDFs (Act + schedule PDFs) are all downloaded.
+- Acts with `crawl_status` `completed` or `partial` whose own PDFs (Act + schedule PDFs) are all downloaded.
+  `partial` (owner, 2026-11-16): India Code has no section text for the Act (`sections` is empty; the text is in
+  the Act's PDF) or no text for some schedules (empty `body_html` and `body_text`).
   Schedule PDFs are **not exported** (owner, 2026-11-03): every schedule's text is exported and the Act's PDF
   contains the schedules.
   Anything half-scraped is never exported.
@@ -33,6 +35,9 @@ Format 1 (one JSON file per Act, PDFs only under `files/<ab>/<sha256>.pdf`) is n
 The folders follow the site's pages: one folder per jurisdiction (`central/`; State Acts later
 under `state/<state-slug>/` with the same layout), one folder per Act, and inside it one file per
 section, schedule and tab, with the Act's PDFs next to them.
+The site reads only the jurisdiction folders listed in `src/Jurisdiction.php` (today `central`);
+the code there is both the folder name and the `/acts/<code>` URL segment, so a State folder needs
+an entry there (and the owner's OK for its URL) before the site shows it.
 
 ```
 content/

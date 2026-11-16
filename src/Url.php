@@ -14,9 +14,13 @@ final class Url
         return '/';
     }
 
-    public static function actList(string $year = ''): string
+    /**
+     * All Acts of a jurisdiction, or those of one year: /acts/central, /acts/central/2020.
+     */
+    public static function actList(string $jurisdiction, string $year = ''): string
     {
-        return $year === '' ? '/acts/central' : '/acts/central/' . rawurlencode($year);
+        $base = '/acts/' . rawurlencode($jurisdiction);
+        return $year === '' ? $base : $base . '/' . rawurlencode($year);
     }
 
     /**
@@ -30,9 +34,9 @@ final class Url
     /**
      * An Act page or one of its tabs ('schedules', 'details', 'rules', ...).
      */
-    public static function act(string $slug, string $tab = ''): string
+    public static function act(string $jurisdiction, string $slug, string $tab = ''): string
     {
-        return '/acts/central/' . rawurlencode($slug) . ($tab !== '' ? '/' . rawurlencode($tab) : '');
+        return self::actList($jurisdiction) . '/' . rawurlencode($slug) . ($tab !== '' ? '/' . rawurlencode($tab) : '');
     }
 
     /**
@@ -42,9 +46,11 @@ final class Url
      *
      * @param string $kind SECTION or SCHEDULE
      */
-    public static function provision(string $actSlug, string $slug, string $kind = 'SECTION', int $page = 1): string
+    public static function provision(string $jurisdiction, string $actSlug, string $slug, string $kind = 'SECTION', int $page = 1): string
     {
-        $base = $kind === 'SCHEDULE' ? self::act($actSlug, 'schedules') : self::paged(self::act($actSlug), $page);
+        $base = $kind === 'SCHEDULE'
+            ? self::act($jurisdiction, $actSlug, 'schedules')
+            : self::paged(self::act($jurisdiction, $actSlug), $page);
         return $base . '#' . rawurlencode($slug);
     }
 

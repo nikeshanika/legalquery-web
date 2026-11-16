@@ -14,6 +14,7 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 use LegalQueryWeb\App;
 use LegalQueryWeb\Content;
 use LegalQueryWeb\HttpError;
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Pager;
 use LegalQueryWeb\Redirect;
 use LegalQueryWeb\Router;
@@ -65,18 +66,18 @@ function route(string $path): ?string
 
 // ---- routing ----
 check('home', route('/'), 'HomeController::index []');
-check('list', route('/acts/central'), 'ActListController::index []');
-check('list page', route('/acts/central/page/3'), 'ActListController::index {"page":"3"}');
-check('year', route('/acts/central/2020'), 'ActListController::index {"year":"2020"}');
-check('year page', route('/acts/central/2020/page/2'), 'ActListController::index {"page":"2","year":"2020"}');
-check('act', route('/acts/central/companies-act-2013'), 'ActController::sections {"act":"companies-act-2013"}');
-check('act page', route('/acts/central/companies-act-2013/page/4'), 'ActController::sections {"act":"companies-act-2013","page":"4"}');
-check('details', route('/acts/central/companies-act-2013/details'), 'ActController::details {"act":"companies-act-2013"}');
-check('schedules', route('/acts/central/companies-act-2013/schedules'), 'ActController::schedules {"act":"companies-act-2013"}');
-check('tab', route('/acts/central/companies-act-2013/rules/page/2'), 'ActController::tab {"act":"companies-act-2013","page":"2","tab":"rules"}');
-check('section', route('/acts/central/companies-act-2013/section-2a'), 'ActController::provision {"act":"companies-act-2013","provision":"section-2a"}');
-check('schedule', route('/acts/central/companies-act-2013/first-schedule'), 'ActController::provision {"act":"companies-act-2013","provision":"first-schedule"}');
-check('schedule 21', route('/acts/central/companies-act-2013/schedule-21'), 'ActController::provision {"act":"companies-act-2013","provision":"schedule-21"}');
+check('list', route('/acts/central'), 'ActListController::index {"jurisdiction":"central"}');
+check('list page', route('/acts/central/page/3'), 'ActListController::index {"jurisdiction":"central","page":"3"}');
+check('year', route('/acts/central/2020'), 'ActListController::index {"jurisdiction":"central","year":"2020"}');
+check('year page', route('/acts/central/2020/page/2'), 'ActListController::index {"jurisdiction":"central","page":"2","year":"2020"}');
+check('act', route('/acts/central/companies-act-2013'), 'ActController::sections {"act":"companies-act-2013","jurisdiction":"central"}');
+check('act page', route('/acts/central/companies-act-2013/page/4'), 'ActController::sections {"act":"companies-act-2013","jurisdiction":"central","page":"4"}');
+check('details', route('/acts/central/companies-act-2013/details'), 'ActController::details {"act":"companies-act-2013","jurisdiction":"central"}');
+check('schedules', route('/acts/central/companies-act-2013/schedules'), 'ActController::schedules {"act":"companies-act-2013","jurisdiction":"central"}');
+check('tab', route('/acts/central/companies-act-2013/rules/page/2'), 'ActController::tab {"act":"companies-act-2013","jurisdiction":"central","page":"2","tab":"rules"}');
+check('section', route('/acts/central/companies-act-2013/section-2a'), 'ActController::provision {"act":"companies-act-2013","jurisdiction":"central","provision":"section-2a"}');
+check('schedule', route('/acts/central/companies-act-2013/first-schedule'), 'ActController::provision {"act":"companies-act-2013","jurisdiction":"central","provision":"first-schedule"}');
+check('schedule 21', route('/acts/central/companies-act-2013/schedule-21'), 'ActController::provision {"act":"companies-act-2013","jurisdiction":"central","provision":"schedule-21"}');
 check('search', route('/search/page/2'), 'SearchController::index {"page":"2"}');
 check('file', route('/files/' . str_repeat('ab', 32) . '/A2026-9.pdf'), 'FileController::pdf {"name":"A2026-9.pdf","sha":"' . str_repeat('ab', 32) . '"}');
 check('category', route('/rules'), 'CategoryController::index {"category":"rules"}');
@@ -87,6 +88,8 @@ check('file bad hash', route('/files/xyz/A.pdf'), null);
 check('file traversal', route('/files/' . str_repeat('ab', 32) . '/../../config.php'), null);
 check('unknown tab', route('/acts/central/companies-act-2013/whatever'), null);
 check('bad slug', route('/acts/central/Companies_Act'), null);
+check('unknown jurisdiction', route('/acts/kerala'), null);
+check('unknown jurisdiction act', route('/acts/kerala/companies-act-2013'), null);
 
 // ---- canonical paths ----
 check('trailing slash', App::canonicalPath('/acts/central/'), '/acts/central');
@@ -104,9 +107,12 @@ check('category url', Url::category('rules'), '/rules');
 check('file url', Url::file(['sha256' => 'ff', 'filename' => 'A 2026, 9.pdf']), '/files/ff/A-2026-9.pdf');
 check('file url download', Url::file(['sha256' => 'ff', 'filename' => 'x'], true), '/files/ff/x.pdf?download=1');
 // Sections and schedules have no page of their own (owner, 2026-11-03): they live in the Act's tabs.
-check('section url', Url::provision('companies-act-2013', 'section-2a'), '/acts/central/companies-act-2013#section-2a');
-check('section url page 2', Url::provision('companies-act-2013', 'section-25', 'SECTION', 2), '/acts/central/companies-act-2013/page/2#section-25');
-check('schedule url', Url::provision('companies-act-2013', 'first-schedule', 'SCHEDULE'), '/acts/central/companies-act-2013/schedules#first-schedule');
+check('act list url', [Url::actList('central'), Url::actList('central', '2020')], ['/acts/central', '/acts/central/2020']);
+check('act url', Url::act('central', 'x', 'rules'), '/acts/central/x/rules');
+check('jurisdictions', [Jurisdiction::codes(), Jurisdiction::name('central'), Jurisdiction::exists('../x')], [['central'], 'Central Acts', false]);
+check('section url', Url::provision('central', 'companies-act-2013', 'section-2a'), '/acts/central/companies-act-2013#section-2a');
+check('section url page 2', Url::provision('central', 'companies-act-2013', 'section-25', 'SECTION', 2), '/acts/central/companies-act-2013/page/2#section-25');
+check('schedule url', Url::provision('central', 'companies-act-2013', 'first-schedule', 'SCHEDULE'), '/acts/central/companies-act-2013/schedules#first-schedule');
 
 // ---- pagination ----
 $link = fn(int $n): string => Url::paged('/l', $n);
@@ -143,20 +149,22 @@ check('provision search', array_column(Search::provisions($rows, $bySlug, 'defin
 // ---- content ----
 $content = new Content(__DIR__ . '/fixtures/content');
 check('ready', $content->ready(), true);
-check('acts', array_column($content->acts(), 'slug'), ['kerala-alteration-of-name-act-2026']);
-check('years', $content->years(), ['2026' => 1]);
-check('categories', $content->categories(['rules', 'notifications']), []);
-check('act', $content->act('kerala-alteration-of-name-act-2026')['act_number'] ?? null, '18');
-check('missing act', $content->act('nope'), null);
-check('bad slug never reads a file', $content->act('../index'), null);
+check('acts', array_column($content->acts('central'), 'slug'), ['kerala-alteration-of-name-act-2026']);
+check('years', $content->years('central'), ['2026' => 1]);
+check('categories', $content->categories('central', ['rules', 'notifications']), []);
+check('act', $content->act('central', 'kerala-alteration-of-name-act-2026')['act_number'] ?? null, '18');
+check('missing act', $content->act('central', 'nope'), null);
+check('bad slug never reads a file', $content->act('central', '../index'), null);
 check('pdf path', $content->pdfPath(str_repeat('0', 64)), null);
 $kerala = 'kerala-alteration-of-name-act-2026';
-check('act has no section text', array_key_exists('body_html', $content->act($kerala)['sections'][0]), false);
-check('provision file', [$content->provision($kerala, 'SECTION', 'section-2')['heading'] ?? null, $content->provision($kerala, 'SECTION', 'section-2')['kind'] ?? null], ['Definitions', 'SECTION']);
-check('missing provision', $content->provision($kerala, 'SCHEDULE', 'first-schedule'), null);
-check('bad provision slug', $content->provision($kerala, 'SECTION', '../act'), null);
-check('empty tab', $content->tab($kerala, 'rules'), []);
-check('pdf path in act folder', str_ends_with((string) $content->act($kerala)['files'][0]['path'], '/pdf/A2026-18.pdf'), true);
+check('act has no section text', array_key_exists('body_html', $content->act('central', $kerala)['sections'][0]), false);
+check('provision file', [$content->provision('central', $kerala, 'SECTION', 'section-2')['heading'] ?? null, $content->provision('central', $kerala, 'SECTION', 'section-2')['kind'] ?? null], ['Definitions', 'SECTION']);
+check('missing provision', $content->provision('central', $kerala, 'SCHEDULE', 'first-schedule'), null);
+check('bad provision slug', $content->provision('central', $kerala, 'SECTION', '../act'), null);
+check('empty tab', $content->tab('central', $kerala, 'rules'), []);
+check('act row knows its jurisdiction', [$content->acts('central')[0]['jurisdiction'], $content->act('central', $kerala)['jurisdiction']], ['central', 'central']);
+check('unknown jurisdiction reads nothing', [$content->acts('../central'), $content->act('state', $kerala), $content->searchRows('x'), $content->years('x')], [[], null, [], []]);
+check('pdf path in act folder', str_ends_with((string) $content->act('central', $kerala)['files'][0]['path'], '/pdf/A2026-18.pdf'), true);
 // files.json paths must stay inside content/.
 $tmp = sys_get_temp_dir() . '/lq-content-' . getmypid();
 @mkdir("$tmp/central/acts/x/pdf", 0777, true);
@@ -181,7 +189,7 @@ check('desc hindi kept', Seo::description('धारा 2 परिभाषा�
 $bc = Seo::breadcrumbs([['Home', '/'], ['Act', '/acts/central/x#section-2']], 'Section 2', $abs);
 check('breadcrumb items', array_column($bc['itemListElement'], 'item'), ['https://example.org/', 'https://example.org/acts/central/x']);
 check('breadcrumb last', end($bc['itemListElement']), ['@type' => 'ListItem', 'position' => 3, 'name' => 'Section 2']);
-$fixture = $content->act('kerala-alteration-of-name-act-2026');
+$fixture = $content->act('central', 'kerala-alteration-of-name-act-2026');
 $law = Seo::act($fixture, $abs);
 check('legislation', [$law['@type'], $law['url'], $law['legislationIdentifier'], $law['legislationDate']],
     ['Legislation', 'https://example.org/acts/central/kerala-alteration-of-name-act-2026', 'Act No. 18 of 2026', '2026-08-14']);

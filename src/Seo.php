@@ -86,9 +86,9 @@ final class Seo
         $data = [
             '@context' => 'https://schema.org',
             '@type' => 'Legislation',
-            '@id' => $absolute(Url::act($act['slug'])) . '#act',
+            '@id' => $absolute(Url::act($act['jurisdiction'], $act['slug'])) . '#act',
             'name' => $act['title'],
-            'url' => $absolute(Url::act($act['slug'])),
+            'url' => $absolute(Url::act($act['jurisdiction'], $act['slug'])),
             'legislationType' => 'Act',
             'legislationJurisdiction' => ['@type' => 'Country', 'name' => 'India'],
             'legislationPassedBy' => ['@type' => 'GovernmentOrganization', 'name' => 'Parliament of India'],

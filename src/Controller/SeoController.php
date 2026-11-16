@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LegalQueryWeb\Controller;
 
 use LegalQueryWeb\HttpError;
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
 
 /**
@@ -53,30 +54,38 @@ final class SeoController extends Controller
      */
     private function urls(): array
     {
-        $acts = $this->content->acts();
         $per = $this->perPage();
         $urls = [Url::home()];
-        for ($n = 1, $last = max(1, (int) ceil(count($acts) / $per)); $n <= $last; $n++) {
-            $urls[] = Url::paged(Url::actList(), $n);
-        }
-        foreach ($this->content->years() as $year => $count) {
-            for ($n = 1, $last = (int) ceil($count / $per); $n <= $last; $n++) {
-                $urls[] = Url::paged(Url::actList((string) $year), $n);
+        $acts = [];
+        foreach (Jurisdiction::codes() as $code) {
+            $list = $this->content->acts($code);
+            if (!$list) {
+                continue;
+            }
+            $acts = [...$acts, ...$list];
+            for ($n = 1, $last = (int) ceil(count($list) / $per); $n <= $last; $n++) {
+                $urls[] = Url::paged(Url::actList($code), $n);
+            }
+            foreach ($this->content->years($code) as $year => $count) {
+                for ($n = 1, $last = (int) ceil($count / $per); $n <= $last; $n++) {
+                    $urls[] = Url::paged(Url::actList($code, (string) $year), $n);
+                }
             }
         }
-        foreach ($this->content->categories(array_keys(ActController::TABS)) as $tab => $count) {
+        foreach ($this->content->categories(Jurisdiction::DEFAULT, array_keys(ActController::TABS)) as $tab => $count) {
             for ($n = 1, $last = (int) ceil($count / $per); $n <= $last; $n++) {
                 $urls[] = Url::paged(Url::category($tab), $n);
             }
         }
         foreach ($acts as $act) {
-            $urls[] = Url::act($act['slug']);
-            $urls[] = Url::act($act['slug'], 'details');
+            [$where, $slug] = [$act['jurisdiction'], $act['slug']];
+            $urls[] = Url::act($where, $slug);
+            $urls[] = Url::act($where, $slug, 'details');
             if ($act['schedules']) {
-                $urls[] = Url::act($act['slug'], 'schedules');
+                $urls[] = Url::act($where, $slug, 'schedules');
             }
             foreach ($act['tabs'] ?? [] as $tab) {
-                $urls[] = Url::act($act['slug'], $tab);
+                $urls[] = Url::act($where, $slug, $tab);
             }
         }
         return $urls;

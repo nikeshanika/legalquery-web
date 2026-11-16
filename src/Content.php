@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace LegalQueryWeb;
 
 /**
- * Read-only access to content/ (written by the scraper's export-web command), format 2:
- * central/index.json (all Acts), central/search.json (section headings), and one folder per Act,
- * central/acts/<slug>/ with act.json, sections/<slug>.json, schedules/<slug>.json, <tab>.json and
- * its PDFs; files.json maps a PDF checksum to its path. Format: docs/CONTENT.md.
+ * Read-only access to content/ (written by the scraper's export-web command), format 2. One folder
+ * per jurisdiction (Jurisdiction::codes(), today only central/) with index.json (all Acts),
+ * search.json (section headings) and one folder per Act, acts/<slug>/ with act.json,
+ * sections/<slug>.json, schedules/<slug>.json, <tab>.json and its PDFs; files.json maps a PDF
+ * checksum to its path. Format: docs/CONTENT.md. An unknown jurisdiction reads as empty.
  */
 final class Content
 {
@@ -28,17 +29,24 @@ final class Content
      */
     public function ready(): bool
     {
-        return ($this->manifest()['format'] ?? null) === self::FORMAT && is_file($this->dir . '/central/index.json');
+        return ($this->manifest()['format'] ?? null) === self::FORMAT && is_file($this->dir . '/' . Jurisdiction::DEFAULT . '/index.json');
     }
 
     /**
-     * Every exported Act, newest enactment first.
+     * Every exported Act of one jurisdiction, newest enactment first. Each row's `jurisdiction` is
+     * the folder it was read from.
      *
      * @return list<array<string, mixed>>
      */
-    public function acts(): array
+    public function acts(string $jurisdiction): array
     {
-        return $this->read('central/index.json')['acts'] ?? [];
+        if (!Jurisdiction::exists($jurisdiction)) {
+            return [];
+        }
+        return array_map(
+            static fn(array $act): array => ['jurisdiction' => $jurisdiction] + $act,
+            $this->read("$jurisdiction/index.json")['acts'] ?? [],
+        );
     }
 
     /**
@@ -47,12 +55,13 @@ final class Content
      *
      * @return array<string, mixed>|null
      */
-    public function act(string $slug): ?array
+    public function act(string $jurisdiction, string $slug): ?array
     {
-        if (!preg_match(self::SLUG, $slug)) {
+        if (!Jurisdiction::exists($jurisdiction) || !preg_match(self::SLUG, $slug)) {
             return null;
         }
-        return $this->read("central/acts/$slug/act.json");
+        $act = $this->read("$jurisdiction/acts/$slug/act.json");
+        return $act === null ? null : ['jurisdiction' => $jurisdiction] + $act;
     }
 
     /**
@@ -62,13 +71,13 @@ final class Content
      *
      * @return array<string, mixed>|null
      */
-    public function provision(string $act, string $kind, string $slug): ?array
+    public function provision(string $jurisdiction, string $act, string $kind, string $slug): ?array
     {
-        if (!preg_match(self::SLUG, $act) || !preg_match(self::SLUG, $slug)) {
+        if (!Jurisdiction::exists($jurisdiction) || !preg_match(self::SLUG, $act) || !preg_match(self::SLUG, $slug)) {
             return null;
         }
         $folder = $kind === 'SCHEDULE' ? 'schedules' : 'sections';
-        $item = $this->read("central/acts/$act/$folder/$slug.json");
+        $item = $this->read("$jurisdiction/acts/$act/$folder/$slug.json");
         return $item === null ? null : $item + ['kind' => $kind];
     }
 
@@ -77,23 +86,23 @@ final class Content
      *
      * @return list<array<string, mixed>>
      */
-    public function tab(string $act, string $tab): array
+    public function tab(string $jurisdiction, string $act, string $tab): array
     {
-        if (!preg_match(self::SLUG, $act) || !preg_match(self::SLUG, $tab)) {
+        if (!Jurisdiction::exists($jurisdiction) || !preg_match(self::SLUG, $act) || !preg_match(self::SLUG, $tab)) {
             return [];
         }
-        return $this->read("central/acts/$act/$tab.json")['items'] ?? [];
+        return $this->read("$jurisdiction/acts/$act/$tab.json")['items'] ?? [];
     }
 
     /**
-     * Year => number of Acts, newest year first.
+     * Year => number of Acts of one jurisdiction, newest year first.
      *
      * @return array<string, int>
      */
-    public function years(): array
+    public function years(string $jurisdiction): array
     {
         $years = [];
-        foreach ($this->acts() as $act) {
+        foreach ($this->acts($jurisdiction) as $act) {
             if (preg_match('/^\d{4}$/', (string) $act['year'])) {
                 $years[$act['year']] = ($years[$act['year']] ?? 0) + 1;
             }
@@ -103,16 +112,16 @@ final class Content
     }
 
     /**
-     * Linked-document tab => number of Acts that have it, in the order of $tabs; tabs no Act has
-     * are left out.
+     * Linked-document tab => number of Acts of one jurisdiction that have it, in the order of
+     * $tabs; tabs no Act has are left out.
      *
      * @param list<string> $tabs e.g. ['rules', 'notifications']
      * @return array<string, int>
      */
-    public function categories(array $tabs): array
+    public function categories(string $jurisdiction, array $tabs): array
     {
         $counts = array_fill_keys($tabs, 0);
-        foreach ($this->acts() as $act) {
+        foreach ($this->acts($jurisdiction) as $act) {
             foreach ($act['tabs'] ?? [] as $tab) {
                 if (isset($counts[$tab])) {
                     $counts[$tab]++;
@@ -123,13 +132,13 @@ final class Content
     }
 
     /**
-     * Section and schedule headings: [act slug, provision slug, label, heading].
+     * Section and schedule headings of one jurisdiction: [act slug, provision slug, label, heading].
      *
      * @return list<array{0: string, 1: string, 2: string, 3: string}>
      */
-    public function searchRows(): array
+    public function searchRows(string $jurisdiction): array
     {
-        return $this->read('central/search.json') ?? [];
+        return Jurisdiction::exists($jurisdiction) ? ($this->read("$jurisdiction/search.json") ?? []) : [];
     }
 
     /**

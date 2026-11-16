@@ -1,12 +1,13 @@
 <?php
 /**
- * Paged list of Central Acts, all or one year, with title/number filter.
+ * Paged list of one jurisdiction's Acts, all or one year, with title/number filter.
  *
  * @var LegalQueryWeb\View $view
  * @var string $heading
  * @var list<array{0: string, 1: string}> $crumbs
  * @var list<array<string, mixed>> $acts
  * @var array<string, mixed> $pager
+ * @var string $jurisdiction e.g. central
  * @var string $search
  * @var string $year
  * @var array<string, int> $years
@@ -14,7 +15,7 @@
  */
 use LegalQueryWeb\Url;
 
-$action = Url::actList($year);
+$action = Url::actList($jurisdiction, $year);
 ?>
 <?= $view->partial('crumbs', ['crumbs' => $crumbs, 'current' => $heading]) ?>
 <div class="page-head">
@@ -35,7 +36,7 @@ $action = Url::actList($year);
     </select>
     <button class="btn btn-primary" type="submit">Apply</button>
 <?php if ($search !== '' || $year !== ''): ?>
-    <a class="btn btn-outline" href="<?= e(Url::actList()) ?>">Reset filters</a>
+    <a class="btn btn-outline" href="<?= e(Url::actList($jurisdiction)) ?>">Reset filters</a>
 <?php endif; ?>
   </form>
   <div>

@@ -6,12 +6,13 @@
  *
  * @var LegalQueryWeb\View $view
  */
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
 
 $columns = [
     'Laws' => [
         ['Home', Url::home()],
-        ['Central Acts', Url::actList()],
+        [Jurisdiction::name(Jurisdiction::DEFAULT), Url::actList(Jurisdiction::DEFAULT)],
         ['Search', Url::search()],
     ],
     'Official sources' => [

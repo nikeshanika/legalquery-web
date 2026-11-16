@@ -26,7 +26,8 @@ Not to be confused with `/Users/user/Nikesh/legalquery` (the Drupal site on port
   (code: `src/web_export.py` there). Run it with `./dev.sh export`.
 - **Never edit `content/` by hand** and never write to the scraper project from here. If the site
   needs a new field, change the export in the scraper project and `docs/CONTENT.md` together.
-- Only completed Acts with all their PDFs are exported. Never show half-scraped data.
+- Only completed or `partial` Acts with all their PDFs are exported (`partial` = India Code itself has no
+  section or schedule text; owner, 2026-11-16). Never show half-scraped data.
 - The scraper's own rules (polite crawling, `--max-records ≤ 20`, owner OK before scaling up) apply
   whenever you run it.
 

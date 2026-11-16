@@ -12,7 +12,7 @@ $open_tab ??= '';
 <?php foreach ($acts as $act): ?>
 <div class="act-row">
   <div class="act-main">
-    <h3><a href="<?= e(Url::act($act['slug'])) ?>"><?= e($act['title']) ?></a></h3>
+    <h3><a href="<?= e(Url::act($act['jurisdiction'], $act['slug'])) ?>"><?= e($act['title']) ?></a></h3>
     <div class="meta">
 <?php $bits = array_filter([
     $act['act_number'] !== '' ? 'Act ' . $act['act_number'] . ' of ' . $act['year'] : '',
@@ -32,9 +32,9 @@ $open_tab ??= '';
     </div>
   </div>
 <?php if ($open_tab !== ''): ?>
-  <div class="act-side"><a class="btn btn-outline sm" href="<?= e(Url::act($act['slug'], $open_tab)) ?>"><?= e(ucfirst($open_tab)) ?> ›</a></div>
+  <div class="act-side"><a class="btn btn-outline sm" href="<?= e(Url::act($act['jurisdiction'], $act['slug'], $open_tab)) ?>"><?= e(ucfirst($open_tab)) ?> ›</a></div>
 <?php else: ?>
-  <div class="act-side"><a class="btn btn-outline sm" href="<?= e(Url::act($act['slug'])) ?>">Read Act</a></div>
+  <div class="act-side"><a class="btn btn-outline sm" href="<?= e(Url::act($act['jurisdiction'], $act['slug'])) ?>">Read Act</a></div>
 <?php endif; ?>
 </div>
 <?php endforeach; ?>

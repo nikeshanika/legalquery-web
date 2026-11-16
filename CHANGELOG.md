@@ -16,6 +16,7 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## Owner decisions
 
+- 2026-11-16 — Show the 21 `partial` Acts (no section or schedule text on India Code) with what exists and the PDF (owner).
 - 2026-11-02: separate project `legalquery-web` (not inside the scraper, not Drupal); plain PHP pages
   from exported JSON, no database in this project; header/footer written once; no QR codes.
 - Same URL rules as the LegalQuery Drupal module plan (lowercase slugs, `/page/N`, permanent slugs).
@@ -37,8 +38,9 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 - Scraper export (not this project): schedule `body_text` is raw PDF text: 364 of 402 start with the PDF page number
   (e.g. "7"), 16 contain the broken India Code watermark ("In / diaC / ode"). Clean it in the export.
 - Before all States / the full data set: content format 3 (split `files.json` by sha256 prefix; it is read on every
-  PDF request) and jurisdiction-generic code (`central` is hard-coded in Content/Url/Router/Seo). See the scraper's
-  CHANGELOG (2026-11-03).
+  PDF request). See the scraper's CHANGELOG (2026-11-03). The code is jurisdiction-generic since 2026-11-16; adding a
+  State still needs the owner's URL choice (`/acts/<code>`; CONTENT.md planned `state/<state>/` folders) and a
+  decision on how home and the category pages show State Acts.
 - 7 PDFs now have a new sha256 (the scraper's store copy differs from its old download): their old
   `/files/<old sha256>/…` URLs 404. Only matters if those URLs were shared.
 
@@ -62,6 +64,49 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   PDF thumbnails, State Acts when the scraper has them.
 
 ## History
+
+### 2026-11-16 — Committed on branch `central-complete-2026-11-16` (not merged into `main`)
+- The 2026-11-16 entries below (jurisdiction-generic code, `SITE_URL`, `partial` Acts) and `content/slugs.json`
+  (848 Acts). Left out: the untracked root `.htaccess` (2026-11-04, redirects to `public/`); it is not described
+  in this file, so the owner decides.
+
+### 2026-11-16 — `partial` Acts shown (owner: "Show them"); content re-exported with all 848 Central Acts
+- The scraper's `export-web` now also exports `crawl_status = 'partial'` Acts (contract: `docs/CONTENT.md`; `CLAUDE.md`
+  rule updated). 21 Acts: 18 with no section text on India Code (`sections` empty; text only in the PDF) and 3 with
+  schedules that have no text (CPC 1908, Bankers’ Books Evidence 2026, Coal Bearing Areas 1957).
+- `templates/partials/provision-list.php`: an Act with no sections says "India Code publishes no section-wise text for
+  this Act. The full text is in the Act's PDF." (was "No sections yet."); no schedules → "No schedules.".
+- `src/Controller/ActController.php`: meta description "… – full text in the official PDF." when there are no
+  sections (was "0 sections with full text …").
+- Checked (localhost:8800): home "848 Central Acts"; all 21 pages 200, 18 show the note, their PDFs 200 `%PDF-` with
+  matching SHA-256; the 3 Acts' schedule tabs show "No text is published for this schedule." (5 + 2 + 1); slugs:
+  0 of 36,814 changed, 37,067 now; `php tests/run.php` 101 checks passed. Not committed.
+
+### 2026-11-16 — `SITE_URL` override for local serving
+- The local `config.local.php` is the production copy (`site_url` = `https://indiacode.legalquery.in`), so locally the
+  CSS/JS loaded from the live domain (unresolvable here: unstyled pages). `config.php` now lets a `SITE_URL`
+  environment variable (`http(s)://host[:port]`, no path) replace `site_url`. `./dev.sh serve` sets it to the URL it
+  serves (LAN URL with `HOST=0.0.0.0`, which fixes the note of 2026-11-04); `.claude/launch.json` sets
+  `http://localhost:8800`. The server doesn't set it, so production is unchanged.
+- Checks run: `php -l config.php` ok, `bash -n dev.sh` ok; preview on :8800: home styled, every loaded resource from
+  `http://localhost:8800`.
+
+### 2026-11-16 — Jurisdiction-generic code (no URL or page change)
+- New `src/Jurisdiction.php`: the known jurisdictions (only `central`) with their names ("Central Acts",
+  "Central (Parliament of India)") and the router pattern. `Jurisdiction::DEFAULT` = `central`.
+- `Content`: `acts()`, `act()`, `provision()`, `tab()`, `years()`, `categories()`, `searchRows()` take the jurisdiction
+  first and read `<code>/…`; an unknown code reads as empty; Act rows carry `jurisdiction` (the folder read).
+- `Url::actList($j, $year)`, `Url::act($j, $slug, $tab)`, `Url::provision($j, $act, …)`; `Router` matches
+  `/acts/(?<jurisdiction>central)…` and passes it to `ActListController`/`ActController`. Labels in the Act list, Act
+  header breadcrumb, menu, footer and Act Details row come from `Jurisdiction`.
+- Home and category pages (`/rules` …) stay on `Jurisdiction::DEFAULT`; search and the sitemap loop over every
+  jurisdiction. Unused `Controller::crumbs()` (hard-coded "Central Acts") removed.
+- Docs: `docs/URLS.md`, `docs/CONTENT.md`.
+- Checks run: `php -l` on all PHP files clean; `php tests/run.php` → **101 checks passed** (7 new: unknown jurisdiction
+  routes/reads, Url builders, `Jurisdiction`). 87 URLs (home, lists, year, `?search`/`?year`, categories, search,
+  sitemap, robots, 9 Acts with every tab, details, schedules, page 2, old section/schedule URLs, 404s) fetched before
+  and after on a local `php -S`: same status and `Location` for all, **all 87 bodies byte-identical**; no PHP warnings
+  in the server log. Not checked in the browser (no visible change). Not committed.
 
 ### 2026-11-04 — Server: indiacode.legalquery.in on Apache
 - Apache 2.4 + PHP 8.3-FPM; code in `/var/www/html/indiacode.legalquery.in` (git pull). DocumentRoot is

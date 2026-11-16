@@ -22,7 +22,9 @@ serve() {
   else
     echo "Serving http://$HOST:$PORT  (Ctrl+C to stop)"
   fi
-  php -S "$HOST:$PORT" -t public router.php
+  local url="http://$HOST:$PORT"
+  [ "$HOST" = "0.0.0.0" ] && url="http://$(ipconfig getifaddr en0 2>/dev/null || hostname):$PORT"
+  SITE_URL="${SITE_URL:-$url}" php -S "$HOST:$PORT" -t public router.php
 }
 
 case "${1:-all}" in

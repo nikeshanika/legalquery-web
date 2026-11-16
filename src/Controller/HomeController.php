@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace LegalQueryWeb\Controller;
 
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Redirect;
 use LegalQueryWeb\Seo;
 use LegalQueryWeb\Url;
 
 /**
  * Home page (laid out like India Code's home): search band, counts, latest Acts, browse by year,
- * browse by category.
+ * browse by category. Central Acts only (Jurisdiction::DEFAULT) until State Acts exist.
  */
 final class HomeController extends Controller
 {
     public function index(): void
     {
-        $acts = $this->content->acts();
+        $acts = $this->content->acts(Jurisdiction::DEFAULT);
         $manifest = $this->content->manifest();
         $this->view->page('home', [
             'counts' => [
@@ -25,9 +26,9 @@ final class HomeController extends Controller
                 'schedules' => (int) ($manifest['schedules'] ?? array_sum(array_column($acts, 'schedules'))),
             ],
             'latest' => array_slice($acts, 0, 6),
-            'years' => array_slice($this->content->years(), 0, 24, true),
-            'year_count' => count($this->content->years()),
-            'categories' => $this->content->categories(array_keys(ActController::TABS)),
+            'years' => array_slice($this->content->years(Jurisdiction::DEFAULT), 0, 24, true),
+            'year_count' => count($this->content->years(Jurisdiction::DEFAULT)),
+            'categories' => $this->content->categories(Jurisdiction::DEFAULT, array_keys(ActController::TABS)),
             'updated' => (string) ($manifest['exported_at'] ?? ''),
         ], [
             'title' => 'Laws of India – Central Acts, sections and PDFs',

@@ -41,12 +41,12 @@ abstract class Controller
     {
         foreach ($act['sections'] as $i => $section) {
             if ($section['slug'] === $slug) {
-                return Url::provision($act['slug'], $slug, 'SECTION', intdiv($i, $this->perPage()) + 1);
+                return Url::provision($act['jurisdiction'], $act['slug'], $slug, 'SECTION', intdiv($i, $this->perPage()) + 1);
             }
         }
         foreach ($act['schedules'] as $schedule) {
             if ($schedule['slug'] === $slug) {
-                return Url::provision($act['slug'], $slug, 'SCHEDULE');
+                return Url::provision($act['jurisdiction'], $act['slug'], $slug, 'SCHEDULE');
             }
         }
         return null;
@@ -64,23 +64,9 @@ abstract class Controller
     /**
      * @return array<string, mixed>
      */
-    protected function loadAct(string $slug): array
+    protected function loadAct(string $jurisdiction, string $slug): array
     {
-        return $this->content->act($slug) ?? throw new HttpError(404);
-    }
-
-    /**
-     * Breadcrumb links before the current page: [label, url] pairs.
-     *
-     * @return list<array{0: string, 1: string}>
-     */
-    protected function crumbs(bool $actList = true): array
-    {
-        $crumbs = [['Home', Url::home()]];
-        if ($actList) {
-            $crumbs[] = ['Central Acts', Url::actList()];
-        }
-        return $crumbs;
+        return $this->content->act($jurisdiction, $slug) ?? throw new HttpError(404);
     }
 
     /**

@@ -6,6 +6,7 @@
  * @var string $heading
  * @var string $message
  */
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
 
 ?>
@@ -21,5 +22,5 @@ use LegalQueryWeb\Url;
     <input class="input" type="search" name="q" placeholder="Search Acts and sections" aria-label="Search">
     <button class="btn btn-primary" type="submit">Search</button>
   </form>
-  <p><a href="<?= e(Url::home()) ?>">Go to the home page</a> · <a href="<?= e(Url::actList()) ?>">All Central Acts</a></p>
+  <p><a href="<?= e(Url::home()) ?>">Go to the home page</a> · <a href="<?= e(Url::actList(Jurisdiction::DEFAULT)) ?>">All Central Acts</a></p>
 </section>

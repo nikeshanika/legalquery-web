@@ -8,14 +8,15 @@
  * @var array<string, mixed> $act
  * @var list<array{label: string, count: ?int, url: string, active: bool}> $tabs
  */
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
 
 // Sections tab: the trail ends at the Act. Other tabs: the Act is a link and the tab is the current page.
-$crumbs = [['Home', Url::home()], ['Central Acts', Url::actList()]];
+$crumbs = [['Home', Url::home()], [Jurisdiction::name($act['jurisdiction']), Url::actList($act['jurisdiction'])]];
 $current = $act['title'];
 foreach ($tabs as $tab) {
-    if ($tab['active'] && $tab['url'] !== Url::act($act['slug'])) {
-        $crumbs[] = [$act['title'], Url::act($act['slug'])];
+    if ($tab['active'] && $tab['url'] !== Url::act($act['jurisdiction'], $act['slug'])) {
+        $crumbs[] = [$act['title'], Url::act($act['jurisdiction'], $act['slug'])];
         $current = $tab['label'];
     }
 }

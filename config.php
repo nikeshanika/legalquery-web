@@ -24,5 +24,11 @@ $local = __DIR__ . '/config.local.php';
 if (is_file($local)) {
     $config = array_replace($config, require $local);
 }
+// Local serving (dev.sh, .claude/launch.json) sets SITE_URL so links point at the dev server even
+// when config.local.php holds the production URL.
+$siteUrl = getenv('SITE_URL');
+if (is_string($siteUrl) && preg_match('#^https?://[^/\s]+$#', $siteUrl)) {
+    $config['site_url'] = $siteUrl;
+}
 
 return $config;

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace LegalQueryWeb\Controller;
 
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Pager;
 use LegalQueryWeb\Search;
 use LegalQueryWeb\Url;
 
 /**
- * /search?q=...: Acts first, then sections and schedules, in one paged list.
+ * /search?q=...: Acts first, then sections and schedules, of every jurisdiction, in one paged list.
  */
 final class SearchController extends Controller
 {
@@ -21,12 +22,17 @@ final class SearchController extends Controller
 
         $results = [];
         if ($q !== '') {
-            $acts = $this->content->acts();
+            $acts = $rows = [];
+            foreach (Jurisdiction::codes() as $code) {
+                $acts = [...$acts, ...$this->content->acts($code)];
+                $rows = [...$rows, ...$this->content->searchRows($code)];
+            }
             foreach (Search::acts($acts, $q) as $act) {
                 $results[] = ['type' => 'act', 'act' => $act];
             }
+            // Act slugs are unique across jurisdictions (content/slugs.json).
             $bySlug = array_column($acts, null, 'slug');
-            foreach (Search::provisions($this->content->searchRows(), $bySlug, $q) as $hit) {
+            foreach (Search::provisions($rows, $bySlug, $q) as $hit) {
                 $results[] = ['type' => 'provision'] + $hit;
             }
         }
@@ -35,8 +41,9 @@ final class SearchController extends Controller
         foreach ($shown as &$hit) {
             if ($hit['type'] === 'provision') {
                 // Only the hits on this page: each needs its Act's section list for the page number.
-                $act = $this->content->act($hit['act']['slug']);
-                $hit['url'] = ($act ? $this->provisionUrl($act, $hit['slug']) : null) ?? Url::act($hit['act']['slug']);
+                [$where, $slug] = [$hit['act']['jurisdiction'], $hit['act']['slug']];
+                $act = $this->content->act($where, $slug);
+                $hit['url'] = ($act ? $this->provisionUrl($act, $hit['slug']) : null) ?? Url::act($where, $slug);
             }
         }
         unset($hit);
