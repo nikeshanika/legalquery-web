@@ -65,6 +65,21 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## History
 
+### 2026-11-16 — Content format 3: one folder per jurisdiction, split file index (scraper Phase 5d step 2)
+- `src/Content.php`: `FORMAT = 3`; PDFs found through `files/<first two hex chars>.json` (not `files.json`);
+  new `jurisdictions()` (code => name from `manifest.json`) and `counts($code)`.
+- `src/Jurisdiction.php`: `register()` adds the exported States/UTs (label "<Name> Acts", details row "<Name>");
+  `central` keeps its names. `src/App.php` registers them before routing, so `/acts/<code>/…` works for every
+  exported jurisdiction and is a 404 for any other.
+- `src/Controller/HomeController.php`: home section/schedule counts from `jurisdictions.central` (home stays
+  Central-only); before, they were the manifest totals.
+- Fixtures moved to format 3 (`files/b0.json`, manifest `jurisdictions`). `tests/run.php`: 7 new checks (shard
+  lookup, old `files.json` not read, registered codes, State routes, unregistered State 404). **108 checks passed**.
+- Docs: `docs/CONTENT.md` (format 3), `docs/URLS.md` (State URLs; no States page yet), `CLAUDE.md`, `README.md`.
+- Content re-exported (848 Central Acts): every Central JSON identical except `format`, `slugs.json` unchanged;
+  checks on localhost:8800 in the scraper's CHANGELOG. Committed on `main`.
+- Open (owner): how States appear on the site (home, menu, a States page).
+
 ### 2026-11-16 — Committed as `6e374b9` (branch `central-complete-2026-11-16`, fast-forwarded into `main`)
 - The 2026-11-16 entries below (jurisdiction-generic code, `SITE_URL`, `partial` Acts) and `content/slugs.json`
   (848 Acts). Left out: the untracked root `.htaccess` (2026-11-04, redirects to `public/`); it is not described

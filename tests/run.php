@@ -110,6 +110,13 @@ check('file url download', Url::file(['sha256' => 'ff', 'filename' => 'x'], true
 check('act list url', [Url::actList('central'), Url::actList('central', '2020')], ['/acts/central', '/acts/central/2020']);
 check('act url', Url::act('central', 'x', 'rules'), '/acts/central/x/rules');
 check('jurisdictions', [Jurisdiction::codes(), Jurisdiction::name('central'), Jurisdiction::exists('../x')], [['central'], 'Central Acts', false]);
+Jurisdiction::register(['central' => 'CENTRAL', 'kerala' => 'Kerala', 'andaman-and-nicobar-islands' => 'Andaman and Nicobar Islands', '../x' => 'Bad']);
+check('registered jurisdictions', [Jurisdiction::codes(), Jurisdiction::name('central'), Jurisdiction::name('kerala'), Jurisdiction::detail('andaman-and-nicobar-islands'), Jurisdiction::exists('../x')],
+    [['central', 'kerala', 'andaman-and-nicobar-islands'], 'Central Acts', 'Kerala Acts', 'Andaman and Nicobar Islands', false]);
+check('state act route', Router::match('/acts/kerala/some-act-1990')[1]['jurisdiction'] ?? null, 'kerala');
+check('state list route', Router::match('/acts/andaman-and-nicobar-islands/page/2')[1]['jurisdiction'] ?? null, 'andaman-and-nicobar-islands');
+Jurisdiction::register([]);
+check('unregistered state has no route', Router::match('/acts/kerala/some-act-1990'), null);
 check('section url', Url::provision('central', 'companies-act-2013', 'section-2a'), '/acts/central/companies-act-2013#section-2a');
 check('section url page 2', Url::provision('central', 'companies-act-2013', 'section-25', 'SECTION', 2), '/acts/central/companies-act-2013/page/2#section-25');
 check('schedule url', Url::provision('central', 'companies-act-2013', 'first-schedule', 'SCHEDULE'), '/acts/central/companies-act-2013/schedules#first-schedule');
@@ -165,17 +172,24 @@ check('empty tab', $content->tab('central', $kerala, 'rules'), []);
 check('act row knows its jurisdiction', [$content->acts('central')[0]['jurisdiction'], $content->act('central', $kerala)['jurisdiction']], ['central', 'central']);
 check('unknown jurisdiction reads nothing', [$content->acts('../central'), $content->act('state', $kerala), $content->searchRows('x'), $content->years('x')], [[], null, [], []]);
 check('pdf path in act folder', str_ends_with((string) $content->act('central', $kerala)['files'][0]['path'], '/pdf/A2026-18.pdf'), true);
-// files.json paths must stay inside content/.
+// The file index (files/<ab>.json) paths must stay inside content/.
 $tmp = sys_get_temp_dir() . '/lq-content-' . getmypid();
 @mkdir("$tmp/central/acts/x/pdf", 0777, true);
+@mkdir("$tmp/files", 0777, true);
 file_put_contents("$tmp/central/acts/x/pdf/a.pdf", '%PDF');
-file_put_contents("$tmp/files.json", json_encode([str_repeat('a', 64) => 'central/acts/x/pdf/a.pdf', str_repeat('b', 64) => '../config.php', str_repeat('c', 64) => 'central/../../x.pdf']));
-file_put_contents("$tmp/manifest.json", '{"format":1}');
+file_put_contents("$tmp/files/aa.json", json_encode([str_repeat('a', 64) => 'central/acts/x/pdf/a.pdf']));
+file_put_contents("$tmp/files/bb.json", json_encode([str_repeat('b', 64) => '../config.php']));
+file_put_contents("$tmp/files/cc.json", json_encode([str_repeat('c', 64) => 'central/../../x.pdf', str_repeat('a', 64) => 'central/acts/x/pdf/a.pdf']));
+file_put_contents("$tmp/files.json", json_encode([str_repeat('d', 64) => 'central/acts/x/pdf/a.pdf']));
+file_put_contents("$tmp/manifest.json", '{"format":2}');
 $tmpContent = new Content($tmp);
-check('pdf via files.json', $tmpContent->pdfPath(str_repeat('a', 64)), "$tmp/central/acts/x/pdf/a.pdf");
+check('pdf via files/<ab>.json', $tmpContent->pdfPath(str_repeat('a', 64)), "$tmp/central/acts/x/pdf/a.pdf");
 check('pdf path traversal', [$tmpContent->pdfPath(str_repeat('b', 64)), $tmpContent->pdfPath(str_repeat('c', 64))], [null, null]);
+check('format 2 files.json is not read', $tmpContent->pdfPath(str_repeat('d', 64)), null);
 check('old format not ready', $tmpContent->ready(), false);
-array_map('unlink', ["$tmp/central/acts/x/pdf/a.pdf", "$tmp/files.json", "$tmp/manifest.json"]);
+array_map('unlink', ["$tmp/central/acts/x/pdf/a.pdf", "$tmp/files/aa.json", "$tmp/files/bb.json", "$tmp/files/cc.json", "$tmp/files.json", "$tmp/manifest.json"]);
+check('jurisdictions from manifest', $content->jurisdictions(), ['central' => 'CENTRAL']);
+check('counts per jurisdiction', [$content->counts('central')['acts'] ?? null, $content->counts('kerala')], [1, []]);
 
 check('bad pdf hash', $content->pdfPath('../../x'), null);
 

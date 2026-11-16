@@ -44,7 +44,7 @@ php tests/run.php
 | `config.php` | Settings; override in `config.local.php` (not in git) |
 | `src/` | `App` (request), `Router`, `Url`, `Content` (reads JSON), `Pager`, `Search`, `View`, `Controller/` |
 | `templates/` | `layout.php` (the one `<head>`, header and footer) + page templates; `partials/` (header, footer, pager, PDF cards, …) |
-| `content/` | Export output (not in git, except `slugs.json`): `central/index.json`, then one folder per Act (`central/acts/<slug>/`: `act.json`, `sections/`, `schedules/`, one file per tab, `pdf/`). Format: [docs/CONTENT.md](docs/CONTENT.md) |
+| `content/` | Export output (not in git, except `slugs.json`): `files/<ab>.json`, `<jurisdiction>/index.json`, then one folder per Act (`central/acts/<slug>/`: `act.json`, `sections/`, `schedules/`, one file per tab, `pdf/`). Format: [docs/CONTENT.md](docs/CONTENT.md) |
 | `docs/URLS.md` | Every URL and the URL rules |
 
 ## Deploy

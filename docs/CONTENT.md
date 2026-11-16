@@ -9,8 +9,10 @@ cd /Users/user/Nikesh/indiacode-scraper
 
 The export lives in `indiacode-scraper/src/web_export.py`. A field used by the site must not be
 renamed or removed there without updating this file and the templates in the same change.
-Format version: `2` (the `format` field in `manifest.json`, `central/index.json` and every `act.json`).
-Format 1 (one JSON file per Act, PDFs only under `files/<ab>/<sha256>.pdf`) is no longer read.
+Format version: `3` (the `format` field in `manifest.json`, every `<j>/index.json` and every `act.json`),
+since 2026-11-16. Format 3 = format 2 plus one folder per jurisdiction listed in `manifest.json`, and
+`files.json` split into `files/<ab>.json`. Formats 1 and 2 are no longer read; the export deletes their
+`files.json` / format-1 folders.
 
 ## What gets exported
 
@@ -22,29 +24,31 @@ Format 1 (one JSON file per Act, PDFs only under `files/<ab>/<sha256>.pdf`) is n
   Anything half-scraped is never exported.
 - The scraper DB is opened read-only, in one snapshot.
 - **No India Code URL anywhere in `content/`** (owner, 2026-11-03). India Code Act links in that HTML point to
-  this site's Act page (`/acts/central/<slug>`); other India Code links keep only their text; the domain
+  this site's Act page (`/acts/<j>/<slug>`); other India Code links keep only their text; the domain
   written as text is removed.
 - India Code HTML (section bodies, footnotes, summary, history) is sanitised by the export
   (scripts, styles, iframes, `on*` handlers and `javascript:` URLs removed). Templates print
   `*_html` fields as they are; everything else is escaped with `e()`.
-- An Act that is no longer exportable is removed from `central/index.json` and its folder deleted.
+- An Act that is no longer exportable is removed from its `<j>/index.json` and its folder deleted. A
+  jurisdiction whose Acts are all gone keeps its folder with an empty `index.json`.
   Its slug stays in `slugs.json`, so it gets the same URL if it comes back.
 
 ## Layout
 
-The folders follow the site's pages: one folder per jurisdiction (`central/`; State Acts later
-under `state/<state-slug>/` with the same layout), one folder per Act, and inside it one file per
+The folders follow the site's pages: one folder per jurisdiction (`<j>/`, e.g. `central/`, `kerala/`,
+`andaman-and-nicobar-islands/`, all with the same layout), one folder per Act, and inside it one file per
 section, schedule and tab, with the Act's PDFs next to them.
-The site reads only the jurisdiction folders listed in `src/Jurisdiction.php` (today `central`);
-the code there is both the folder name and the `/acts/<code>` URL segment, so a State folder needs
-an entry there (and the owner's OK for its URL) before the site shows it.
+`<j>` is the jurisdiction code: the scraper's `jurisdiction_code()` of the India Code name (lowercase ASCII,
+words joined by `-`; `CENTRAL` → `central`). It is both the folder name and the `/acts/<j>` URL segment
+(owner, 2026-11-16), so it never changes once published. The site shows `central` always and every other
+code listed in `manifest.json` › `jurisdictions` (`src/Jurisdiction.php::register`).
 
 ```
 content/
-  manifest.json                       format, exported_at, counts
+  manifest.json                       format, exported_at, counts, jurisdictions
   slugs.json                          in git: published slugs never change
-  files.json                          sha256 -> PDF path (for /files/{sha256}/{name}.pdf)
-  central/
+  files/<ab>.json                     sha256 -> PDF path, for checksums starting <ab> (for /files/{sha256}/…)
+  central/                            one such folder per jurisdiction code
     index.json                        /acts/central, /acts/central/{year}, /rules, home
     search.json                       /search
     acts/
@@ -69,12 +73,12 @@ content/
 
 | File | Content |
 |---|---|
-| `manifest.json` | `format` (2), `exported_at` (UTC), `acts`, `sections`, `schedules`, `files` (distinct PDFs) |
-| `slugs.json` | `{acts: {record_id: slug}, sections: {section_uuid: slug}}`. **In git**: published URLs never change |
-| `files.json` | `{sha256: path}`, path relative to `content/` of one copy of that PDF (e.g. `central/acts/x/pdf/A2026-18.pdf`); when several Acts hold it, the copy in the first Act by `record_id`. Every exported PDF is listed |
-| `central/index.json` | `{format, acts: [...]}`, newest enactment first. Each entry: `slug`, `record_id`, `jurisdiction` (`central`), `title`, `act_number` (text, leading zeros kept), `year`, `enactment_date` (ISO or ''), `ministry`, `sections` (count), `schedules` (count), `tabs` (names of non-empty tabs, in the order of the site's tabs), `last_checked_at` |
-| `central/search.json` | `[[act slug, provision slug, label, heading], ...]` for every section and schedule |
-| `central/acts/<slug>/act.json` | The Act without section/schedule text (below) |
+| `manifest.json` | `format` (3), `exported_at` (UTC), `acts`, `sections`, `schedules`, `files` (distinct PDFs) — totals over all jurisdictions — and `jurisdictions`: `[{code, name, acts, sections, schedules}]`, `central` first, then by code. `name` is the India Code name (`CENTRAL`, `Kerala`, `Andaman and Nicobar Islands`) |
+| `slugs.json` | `{acts: {record_id: slug}, sections: {section_uuid: slug}}`. **In git**: published URLs never change. Act slugs are unique within a jurisdiction (the same slug can exist under `central` and `kerala`) |
+| `files/<ab>.json` | `{sha256: path}` for every exported PDF whose sha256 starts with `<ab>` (256 files at most), path relative to `content/` of one copy of that PDF (e.g. `central/acts/x/pdf/A2026-18.pdf`); when several Acts hold it, the copy in the first Act by `record_id`. The site reads only the one file it needs per PDF request |
+| `<j>/index.json` | `{format, acts: [...]}`, newest enactment first. Each entry: `slug`, `record_id`, `jurisdiction` (`<j>`), `title`, `act_number` (text, leading zeros kept), `year`, `enactment_date` (ISO or ''), `ministry`, `sections` (count), `schedules` (count), `tabs` (names of non-empty tabs, in the order of the site's tabs), `last_checked_at` |
+| `<j>/search.json` | `[[act slug, provision slug, label, heading], ...]` for every section and schedule |
+| `<j>/acts/<slug>/act.json` | The Act without section/schedule text (below) |
 | `…/sections/<slug>.json`, `…/schedules/<slug>.json` | One provision with its text (below) |
 | `…/<tab>.json` | One linked-document tab (below). Tabs: `rules`, `notifications`, `regulations`, `orders`, `ordinances`, `statutes`, `circulars`, `appendices`, `amendments`. Only non-empty tabs have a file |
 | `…/pdf/…` | The Act's PDFs (below) |
@@ -134,8 +138,8 @@ PDFs in an Act's `pdf/` folder:
   for it in that Act has that `path`.
 - A PDF used by several Acts is in each Act's folder. They are hard links when on the same disk as
   the scraper's `data/`, so they take the space once (`rsync -H` keeps that on the server).
-- The site serves PDFs by checksum only (`/files/<sha256>/<name>.pdf`, found through `files.json`);
-  these URLs did not change with format 2.
+- The site serves PDFs by checksum only (`/files/<sha256>/<name>.pdf`, found through `files/<ab>.json`);
+  these URLs did not change with formats 2 and 3.
 
 ## Slugs
 

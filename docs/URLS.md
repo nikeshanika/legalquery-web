@@ -1,9 +1,11 @@
 # URLs
 
 All URLs are built in `src/Url.php` and matched in `src/Router.php`.
-`central` in `/acts/central…` is a jurisdiction code from `src/Jurisdiction.php` (the only one
-today). Home and the category pages (`/rules` …) show Central Acts only; search covers every
-jurisdiction.
+`central` in `/acts/central…` is a jurisdiction code: `central`, or a State/UT code exported by the
+scraper (`/acts/kerala/…`, `/acts/andaman-and-nicobar-islands/…`; owner, 2026-11-16; codes listed in
+`content/manifest.json`, see docs/CONTENT.md). Every `/acts/central…` URL below works the same for those
+codes; a code that is not exported is a 404. Home and the category pages (`/rules` …) show Central Acts only;
+search covers every jurisdiction. There is no page listing the States yet (owner to decide).
 
 | URL | Page |
 |---|---|

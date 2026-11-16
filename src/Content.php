@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace LegalQueryWeb;
 
 /**
- * Read-only access to content/ (written by the scraper's export-web command), format 2. One folder
- * per jurisdiction (Jurisdiction::codes(), today only central/) with index.json (all Acts),
+ * Read-only access to content/ (written by the scraper's export-web command), format 3. One folder
+ * per jurisdiction (listed in manifest.json, see Jurisdiction) with index.json (all Acts),
  * search.json (section headings) and one folder per Act, acts/<slug>/ with act.json,
- * sections/<slug>.json, schedules/<slug>.json, <tab>.json and its PDFs; files.json maps a PDF
- * checksum to its path. Format: docs/CONTENT.md. An unknown jurisdiction reads as empty.
+ * sections/<slug>.json, schedules/<slug>.json, <tab>.json and its PDFs; files/<ab>.json maps the
+ * PDF checksums starting with <ab> to their paths. Format: docs/CONTENT.md. An unknown
+ * jurisdiction reads as empty.
  */
 final class Content
 {
-    public const FORMAT = 2;
+    public const FORMAT = 3;
 
     private const SLUG = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
@@ -150,6 +151,39 @@ final class Content
     }
 
     /**
+     * The exported jurisdictions from manifest.json: code => display name ("CENTRAL", "Kerala").
+     * Codes that are not URL-safe are left out.
+     *
+     * @return array<string, string>
+     */
+    public function jurisdictions(): array
+    {
+        $out = [];
+        foreach ($this->manifest()['jurisdictions'] ?? [] as $row) {
+            $code = is_array($row) ? ($row['code'] ?? null) : null;
+            if (is_string($code) && preg_match(self::SLUG, $code)) {
+                $out[$code] = is_string($row['name'] ?? null) && $row['name'] !== '' ? $row['name'] : $code;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * manifest.json counts of one jurisdiction (acts, sections, schedules), or [] if not exported.
+     *
+     * @return array<string, mixed>
+     */
+    public function counts(string $jurisdiction): array
+    {
+        foreach ($this->manifest()['jurisdictions'] ?? [] as $row) {
+            if (is_array($row) && ($row['code'] ?? null) === $jurisdiction) {
+                return $row;
+            }
+        }
+        return [];
+    }
+
+    /**
      * Path of an exported PDF, or null. $sha256 must already be 64 hex characters.
      */
     public function pdfPath(string $sha256): ?string
@@ -157,8 +191,8 @@ final class Content
         if (!preg_match('/^[0-9a-f]{64}$/', $sha256)) {
             return null;
         }
-        $relative = $this->read('files.json')[$sha256] ?? null;
-        // files.json is the export's own, but its paths still must stay inside content/.
+        $relative = $this->read('files/' . substr($sha256, 0, 2) . '.json')[$sha256] ?? null;
+        // The file index is the export's own, but its paths still must stay inside content/.
         if (!is_string($relative) || !preg_match('#^(?:[A-Za-z0-9._-]+/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\.pdf$#', $relative)
             || str_contains($relative, '..')) {
             return null;

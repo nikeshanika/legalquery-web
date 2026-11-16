@@ -21,7 +21,7 @@ Not to be confused with `/Users/user/Nikesh/legalquery` (the Drupal site on port
 ## Data source
 
 - `/Users/user/Nikesh/indiacode-scraper` scrapes India Code into SQLite + PDFs and exports
-  `content/` (format 2: `central/` → one folder per Act with `act.json`, `sections/`, `schedules/`,
+  `content/` (format 3: one folder per jurisdiction, `central/`, `kerala/` … → one folder per Act with `act.json`, `sections/`, `schedules/`,
   tab files and `pdf/`) with `python indiacode_scraper.py export-web --out ../legalquery-web/content`
   (code: `src/web_export.py` there). Run it with `./dev.sh export`.
 - **Never edit `content/` by hand** and never write to the scraper project from here. If the site

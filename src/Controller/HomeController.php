@@ -19,11 +19,12 @@ final class HomeController extends Controller
     {
         $acts = $this->content->acts(Jurisdiction::DEFAULT);
         $manifest = $this->content->manifest();
+        $counts = $this->content->counts(Jurisdiction::DEFAULT);
         $this->view->page('home', [
             'counts' => [
                 'acts' => count($acts),
-                'sections' => (int) ($manifest['sections'] ?? array_sum(array_column($acts, 'sections'))),
-                'schedules' => (int) ($manifest['schedules'] ?? array_sum(array_column($acts, 'schedules'))),
+                'sections' => (int) ($counts['sections'] ?? array_sum(array_column($acts, 'sections'))),
+                'schedules' => (int) ($counts['schedules'] ?? array_sum(array_column($acts, 'schedules'))),
             ],
             'latest' => array_slice($acts, 0, 6),
             'years' => array_slice($this->content->years(Jurisdiction::DEFAULT), 0, 24, true),

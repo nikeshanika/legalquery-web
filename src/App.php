@@ -35,6 +35,7 @@ final class App
                 throw new Redirect($clean . ($query !== '' ? '?' . $query : ''), 301);
             }
             $content = new Content((string) $this->config['content_dir']);
+            Jurisdiction::register($content->jurisdictions());
             [$handler, $params] = Router::match($path) ?? throw new HttpError(404);
             if (!$content->ready() && $handler[0] !== Controller\SeoController::class) {
                 throw new HttpError(503, 'No content yet. Run the export in the scraper project.');
