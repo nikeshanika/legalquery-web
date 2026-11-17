@@ -81,6 +81,7 @@ check('schedule 21', route('/acts/central/companies-act-2013/schedule-21'), 'Act
 check('search', route('/search/page/2'), 'SearchController::index {"page":"2"}');
 check('file', route('/files/' . str_repeat('ab', 32) . '/A2026-9.pdf'), 'FileController::pdf {"name":"A2026-9.pdf","sha":"' . str_repeat('ab', 32) . '"}');
 check('category', route('/rules'), 'CategoryController::index {"category":"rules"}');
+check('states', route('/states'), 'StatesController::index []');
 check('category page', route('/notifications/page/2'), 'CategoryController::index {"category":"notifications","page":"2"}');
 check('unknown category', route('/whatever'), null);
 check('sitemap part', route('/sitemap-2.xml'), 'SeoController::sitemapPart {"part":"2"}');
@@ -104,6 +105,7 @@ check('paged 1', Url::paged('/acts/central', 1), '/acts/central');
 check('paged 3', Url::paged('/acts/central', 3, ['search' => 'tax']), '/acts/central/page/3?search=tax');
 check('paged drops empty', Url::paged('/acts/central', 2, ['search' => '']), '/acts/central/page/2');
 check('category url', Url::category('rules'), '/rules');
+check('states url', Url::states(), '/states');
 check('file url', Url::file(['sha256' => 'ff', 'filename' => 'A 2026, 9.pdf']), '/files/ff/A-2026-9.pdf');
 check('file url download', Url::file(['sha256' => 'ff', 'filename' => 'x'], true), '/files/ff/x.pdf?download=1');
 // Sections and schedules have no page of their own (owner, 2026-11-03): they live in the Act's tabs.

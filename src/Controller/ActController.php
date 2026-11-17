@@ -44,6 +44,7 @@ final class ActController extends Controller
             'sections' => $this->withText($row, 'SECTION', array_slice($row['sections'], $pager['offset'], $pager['per_page'])),
             'pager' => $pager,
         ], [
+            'nav' => self::nav($jurisdiction),
             'title' => $this->withPage($row['title'] . ' – Sections and full text', $number),
             'description' => $this->describePage($this->description($row), $number),
             'canonical' => $link($number),
@@ -65,6 +66,7 @@ final class ActController extends Controller
             'tabs' => $this->tabs($row, 'schedules'),
             'schedules' => $this->withText($row, 'SCHEDULE', $row['schedules']),
         ], [
+            'nav' => self::nav($jurisdiction),
             'title' => 'Schedules of ' . $row['title'],
             'description' => sprintf(
                 '%s: %d schedule%s with full text and official PDFs.',
@@ -99,6 +101,7 @@ final class ActController extends Controller
             'tabs' => $this->tabs($row, 'details'),
             'rows' => $rows,
         ], [
+            'nav' => self::nav($jurisdiction),
             'title' => $row['title'] . ' – Act details',
             'description' => Seo::description(
                 ($row['summary_html'] ?? '') ?: (($row['long_title'] ?? '') ?: $this->description($row)),
@@ -128,6 +131,7 @@ final class ActController extends Controller
             'items' => $items,
             'pager' => $pager,
         ], [
+            'nav' => self::nav($jurisdiction),
             'title' => $this->withPage("$label under " . $row['title'], $number),
             'description' => $this->describePage("$label made under " . $row['title'] . ', with official PDFs.', $number),
             'canonical' => $link($number),

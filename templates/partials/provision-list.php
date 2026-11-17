@@ -31,7 +31,11 @@
 <?php if ($kind === 'SCHEDULE'): ?>
   <p class="empty pad">No schedules.</p>
 <?php else: ?>
+<?php if (array_filter($act['files'] ?? [], static fn(array $f): bool => isset($f['sha256']))): ?>
   <p class="empty pad">India Code publishes no section-wise text for this Act. The full text is in the Act's PDF.</p>
+<?php else: ?>
+  <p class="empty pad">India Code publishes no section-wise text and no PDF for this Act.</p>
+<?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>
 </div>

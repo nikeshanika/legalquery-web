@@ -10,6 +10,7 @@ use LegalQueryWeb\Controller\CategoryController;
 use LegalQueryWeb\Controller\FileController;
 use LegalQueryWeb\Controller\HomeController;
 use LegalQueryWeb\Controller\SearchController;
+use LegalQueryWeb\Controller\StatesController;
 use LegalQueryWeb\Controller\SeoController;
 
 /**
@@ -34,6 +35,7 @@ final class Router
             ['#^/$#', [HomeController::class, 'index']],
             ['#^/acts$#', [HomeController::class, 'acts']],
             ['#^/search' . self::PAGE . '$#', [SearchController::class, 'index']],
+            ['#^/states$#', [StatesController::class, 'index']],
             ['#^/sitemap\.xml$#', [SeoController::class, 'sitemap']],
             ['#^/sitemap-(?<part>\d+)\.xml$#', [SeoController::class, 'sitemapPart']],
             ['#^/robots\.txt$#', [SeoController::class, 'robots']],

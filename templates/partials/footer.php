@@ -13,6 +13,7 @@ $columns = [
     'Laws' => [
         ['Home', Url::home()],
         [Jurisdiction::name(Jurisdiction::DEFAULT), Url::actList(Jurisdiction::DEFAULT)],
+        ...(count(Jurisdiction::codes()) > 1 ? [['States and UTs', Url::states()]] : []),
         ['Search', Url::search()],
     ],
     'Official sources' => [

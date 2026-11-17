@@ -65,6 +65,28 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## History
 
+### 2026-11-17 — States page and menu entry (owner: "Keep, add States menu")
+- Owner review of the pilot States: keep State data as India Code has it (Central Acts listed under a UT, repeated
+  titles, "NO MINISTRY"); add a way to reach the States.
+- New `/states` (`src/Controller/StatesController.php`, `templates/states.php`, `Url::states()`, route): every
+  exported jurisdiction except `central`, A to Z, with Acts and sections from `manifest.json`; 404 while none exists.
+- Menu "States" and footer "States and UTs" (only when a State is exported). State list/Act pages highlight
+  "States" (`Controller::nav()`); breadcrumbs and JSON-LD are Home › States › <State> Acts › … (Central unchanged).
+- Sitemap lists `/states`. `tests/run.php`: 2 new checks, **110 passed**.
+- Checked on localhost:8800: `/states` shows Andaman and Nicobar Islands (70 Acts · 179 sections) and Ladakh (64);
+  Ladakh list and Act details: menu "States", crumbs Home › States › Ladakh Acts › …; Central list/Act unchanged.
+- Docs: `docs/URLS.md`.
+
+### 2026-11-16 — First States on the site: Andaman and Nicobar Islands, Ladakh (scraper pilot)
+- Content re-exported with `andaman-and-nicobar-islands/` (70 Acts) and `ladakh/` (64); `slugs.json` +134 Acts,
+  +179 sections, 0 changed. `/acts/andaman-and-nicobar-islands` and `/acts/ladakh` work (every page and tab 200).
+- `templates/act-list.php`: a State list says "Acts of <State> as listed on India Code, with sections where India
+  Code has them …" (was "Acts of Parliament …" on every list).
+- `templates/partials/provision-list.php`: an Act with neither sections nor a PDF says "India Code publishes no
+  section-wise text and no PDF for this Act." (1 Ladakh Act).
+- `php tests/run.php` 108 checks passed. Not committed.
+- How States are reached: done 2026-11-17 (`/states`, menu entry).
+
 ### 2026-11-16 — Content format 3: one folder per jurisdiction, split file index (scraper Phase 5d step 2)
 - `src/Content.php`: `FORMAT = 3`; PDFs found through `files/<first two hex chars>.json` (not `files.json`);
   new `jurisdictions()` (code => name from `manifest.json`) and `counts($code)`.

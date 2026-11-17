@@ -56,6 +56,9 @@ final class SeoController extends Controller
     {
         $per = $this->perPage();
         $urls = [Url::home()];
+        if (count(Jurisdiction::codes()) > 1) {
+            $urls[] = Url::states();
+        }
         $acts = [];
         foreach (Jurisdiction::codes() as $code) {
             $list = $this->content->acts($code);

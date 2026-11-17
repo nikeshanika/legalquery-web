@@ -5,11 +5,13 @@ All URLs are built in `src/Url.php` and matched in `src/Router.php`.
 scraper (`/acts/kerala/…`, `/acts/andaman-and-nicobar-islands/…`; owner, 2026-11-16; codes listed in
 `content/manifest.json`, see docs/CONTENT.md). Every `/acts/central…` URL below works the same for those
 codes; a code that is not exported is a 404. Home and the category pages (`/rules` …) show Central Acts only;
-search covers every jurisdiction. There is no page listing the States yet (owner to decide).
+search covers every jurisdiction. `/states` lists the exported States/UTs (owner, 2026-11-17); State pages
+highlight "States" in the menu and their breadcrumb is Home › States › <State> Acts › ….
 
 | URL | Page |
 |---|---|
 | `/` | Home: search, counts, latest Acts, years, categories (`/acts` → 301 here) |
+| `/states` | States and Union Territories on the site, A to Z, with Act/section counts (404 while none is exported); in the menu and footer only when one is |
 | `/acts/central` · `/acts/central/page/2` | All Central Acts |
 | `/acts/central/2020` · `/acts/central/2020/page/2` | Central Acts of one year |
 | `/acts/central?search=tax` | Filtered list (`noindex`); the year dropdown's `?year=` → 302 to the year URL |

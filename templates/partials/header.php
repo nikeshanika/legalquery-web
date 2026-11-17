@@ -4,7 +4,7 @@
  * (owner, 2026-11-02). Change the menu here only.
  *
  * @var LegalQueryWeb\View $view
- * @var string $nav Active menu key ('home', 'acts', 'search' or '').
+ * @var string $nav Active menu key ('home', 'acts', 'states', 'search' or '').
  */
 use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
@@ -12,6 +12,7 @@ use LegalQueryWeb\Url;
 $menu = [
     ['Home', Url::home(), 'home'],
     [Jurisdiction::name(Jurisdiction::DEFAULT), Url::actList(Jurisdiction::DEFAULT), 'acts'],
+    ...(count(Jurisdiction::codes()) > 1 ? [['States', Url::states(), 'states']] : []),
     ['Search', Url::search(), 'search'],
 ];
 ?>

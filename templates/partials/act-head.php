@@ -12,7 +12,11 @@ use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
 
 // Sections tab: the trail ends at the Act. Other tabs: the Act is a link and the tab is the current page.
-$crumbs = [['Home', Url::home()], [Jurisdiction::name($act['jurisdiction']), Url::actList($act['jurisdiction'])]];
+$crumbs = [['Home', Url::home()]];
+if ($act['jurisdiction'] !== Jurisdiction::DEFAULT) {
+    $crumbs[] = ['States', Url::states()];
+}
+$crumbs[] = [Jurisdiction::name($act['jurisdiction']), Url::actList($act['jurisdiction'])];
 $current = $act['title'];
 foreach ($tabs as $tab) {
     if ($tab['active'] && $tab['url'] !== Url::act($act['jurisdiction'], $act['slug'])) {

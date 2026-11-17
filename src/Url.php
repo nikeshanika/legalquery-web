@@ -24,6 +24,14 @@ final class Url
     }
 
     /**
+     * The States and Union Territories whose Acts are on the site.
+     */
+    public static function states(): string
+    {
+        return '/states';
+    }
+
+    /**
      * Central Acts that have one kind of linked document, e.g. /rules (ActController::TABS keys).
      */
     public static function category(string $tab): string

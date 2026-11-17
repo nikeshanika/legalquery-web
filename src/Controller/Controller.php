@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LegalQueryWeb\Controller;
 
 use LegalQueryWeb\Content;
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\HttpError;
 use LegalQueryWeb\Url;
 use LegalQueryWeb\View;
@@ -24,6 +25,14 @@ abstract class Controller
         protected readonly array $config,
         protected readonly array $query,
     ) {
+    }
+
+    /**
+     * Active menu key of a jurisdiction's pages: 'acts' (Central Acts) or 'states'.
+     */
+    protected static function nav(string $jurisdiction): string
+    {
+        return $jurisdiction === Jurisdiction::DEFAULT ? 'acts' : 'states';
     }
 
     protected function perPage(): int

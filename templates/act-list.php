@@ -20,7 +20,11 @@ $action = Url::actList($jurisdiction, $year);
 <?= $view->partial('crumbs', ['crumbs' => $crumbs, 'current' => $heading]) ?>
 <div class="page-head">
   <h1><?= e($heading) ?></h1>
+<?php if ($jurisdiction === LegalQueryWeb\Jurisdiction::DEFAULT): ?>
   <p>Acts of Parliament with their full text, sections, schedules, rules, notifications and official PDFs, from India Code.</p>
+<?php else: ?>
+  <p>Acts of <?= e(LegalQueryWeb\Jurisdiction::detail($jurisdiction)) ?> as listed on India Code, with sections where India Code has them, rules, notifications and official PDFs.</p>
+<?php endif; ?>
 </div>
 <div class="list-layout">
   <form class="card filter-card" method="get" action="<?= e($action) ?>" role="search">

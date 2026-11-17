@@ -44,6 +44,9 @@ final class ActListController extends Controller
         $name = Jurisdiction::name($jurisdiction);
         $title = $year === '' ? $name : "$name of $year";
         $crumbs = [['Home', Url::home()]];
+        if ($jurisdiction !== Jurisdiction::DEFAULT) {
+            $crumbs[] = ['States', Url::states()];
+        }
         if ($year !== '') {
             $crumbs[] = [$name, Url::actList($jurisdiction)];
         }
@@ -58,6 +61,7 @@ final class ActListController extends Controller
             'years' => $this->content->years($jurisdiction),
             'total_all' => count($this->content->acts($jurisdiction)),
         ], [
+            'nav' => self::nav($jurisdiction),
             'title' => $this->withPage($title, $number),
             'description' => $this->describePage($year === ''
                 ? "All $name of India with full text, sections and official PDFs."
