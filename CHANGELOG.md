@@ -65,6 +65,19 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## History
 
+### 2026-11-18 — "Original Act" note removed (owner: "Hata dena")
+- The note is gone (`partials/act-head.php`, `.original-note` CSS removed, `site.css?v=12`). State copies still show the
+  original's sections, PDF and section documents; the page no longer says where they come from. `act.json` still
+  carries `original` (unused by the templates).
+
+### 2026-11-18 — "Original Act" note on State copies of a Central Act
+- `act.json` field `original` (scraper export, see `docs/CONTENT.md`): for a State Act that copies another Act,
+  the page shows the original's sections, PDF and section documents (as India Code does) and the note
+  "Original Act: <link> (Central (Parliament of India)). The Act PDF, sections and … are shown from the original Act,
+  as on India Code." (`templates/partials/act-head.php`, `.original-note`, `site.css?v=11`).
+- 5 Andaman Acts have it (e.g. `/acts/andaman-and-nicobar-islands/motor-vehicles-act-1988`: 257 sections, `A1988-59.pdf`).
+- `php tests/run.php` passed. Committed (with the removal below).
+
 ### 2026-11-17 — States page and menu entry (owner: "Keep, add States menu")
 - Owner review of the pilot States: keep State data as India Code has it (Central Acts listed under a UT, repeated
   titles, "NO MINISTRY"); add a way to reach the States.

@@ -95,6 +95,7 @@ content/
 | `summary_html`, `history_html` | sanitised HTML or '' |
 | `last_checked_at` | UTC ISO-8601 |
 | `links_complete` | false while Rules/Notifications/... are still being collected |
+| `original` | `null`, or the Act this one is a copy of (`dc.identifier.refact`, e.g. a Central Act listed under a UT; since 2026-11-18): `{record_id, title, jurisdiction, path}` (`path` = its page here, '' if it is not exported). Then `files`, `sections`, `schedules` and their `linked` documents are the **original's**, as India Code shows them; `tabs` and the other fields are this Act's own. The site does not show the original (owner, 2026-11-18) |
 | `files` | the Act's PDFs (see *File entry*), English first |
 | `sections[]` | in Act order: `uuid`, `slug` (`section-2a`), `number`, `heading`, `docs` (number of linked documents) |
 | `schedules[]` | in Act order: `uuid`, `slug` (`first-schedule`), `heading`, `docs` |
