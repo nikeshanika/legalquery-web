@@ -54,7 +54,7 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   in `index.json` (scraper export change + `docs/CONTENT.md`).
 - "Browse by ministry" (India Code has it) would need new URLs: owner to decide.
 - Push to a GitHub repo (`legalquery-web`) — needs the owner's OK and the repo.
-- Production (indiacode.legalquery.in, Apache, live 2026-11-04): `rsync` of `content/` still to do.
+- Production (act.legalquery.in, Apache): content format 3 uploaded 2026-11-18 (FileZilla); later updates: rsync.
 - SEO, needs the scraper export: a `content_changed_at` per Act (date the text last really
   changed) for `<lastmod>` in the sitemap and `dateModified`; `last_checked_at` is only the crawl
   date, so it is not used (Google ignores lastmod that changes on every crawl).
@@ -64,6 +64,14 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   PDF thumbnails, State Acts when the scraper has them.
 
 ## History
+
+### 2026-11-18 — Production on act.legalquery.in; PDF icon cache-busting
+- Server: code pulled (fb2d078), `content/` (format 3) uploaded with FileZilla; `systemctl restart php8.3-fpm` was
+  needed (opcache kept the old format-2 code → 503 "No content yet"). Now 200. act.legalquery.in's vhost uses
+- `partials/act-pdfs.php`: icon URL is `pdf-thumb-demo.svg?v=2`, so browsers drop the cached old icon (SVGs are
+  cached 7 days by `.htaccess`). Bump `?v=` whenever the image changes.
+- After a deploy: restart `php8.3-fpm` if pages still show old behaviour.
+- Checked: `php -l` ok; `php tests/run.php` → 110 checks passed.
 
 ### 2026-11-18 — "Original Act" note removed (owner: "Hata dena")
 - The note is gone (`partials/act-head.php`, `.original-note` CSS removed, `site.css?v=12`). State copies still show the

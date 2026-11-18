@@ -12,7 +12,7 @@
  */
 use LegalQueryWeb\Url;
 
-$thumb = $view->asset('/assets/img/pdf-thumb-demo.svg');
+$thumb = $view->asset('/assets/img/pdf-thumb-demo.svg?v=2');
 $file = english_file($files);
 if (!$file) {
     return;
