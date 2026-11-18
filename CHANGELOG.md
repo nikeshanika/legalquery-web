@@ -27,7 +27,9 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   (`a2025-37_shed._l.pdf` …): the schedule text is shown (owner).
 - 2026-11-03: **no India Code URLs** anywhere: not in `content/` (the export rewrites/removes them), not in the
   templates. "Source: India Code, Government of India" stays as plain text (owner).
-- 2026-11-04: PDFs show one "View" button and the English PDF only; no language buttons for now (owner).
+- 2026-11-18: PDF in several languages → no direct language buttons; clicking the PDF (thumbnail or "View") opens a
+  popup beside it with one button per language (English, हिन्दी, English + हिन्दी …); the one clicked opens (owner;
+  replaces 2026-11-04 "one View button, English PDF only"). One PDF → opens directly as before.
 - 2026-11-03: no "Important references" block and no india.gov.in link on the site, so it doesn't look like a
   government-portal clone (owner).
 - 2026-11-02: `content/` folders follow the pages: `central/acts/<act>/` with `act.json`, `sections/`,
@@ -46,9 +48,9 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 - Real PDF thumbnails (first page) to replace the demo image: needs a thumbnail field from the
   scraper export (+ `docs/CONTENT.md`).
-- Scraper export: 24 Acts have a Hindi PDF (file name `H…`) labelled `language: en`, e.g.
-  `recycling-of-ships-act-2019` → `h201949.pdf`. The site hides it (one PDF per language), so it can't
-  be picked as Hindi until the export labels it `hi`.
+- Scraper export: about 56 PDFs are Hindi (file name `H…`) but labelled `language: en`, e.g.
+  `recycling-of-ships-act-2019` → `h201949.pdf`. The site shows them as हिन्दी by file name (`pdf_choices()`); fix the
+  label in the export, then that workaround can go.
 - Owner review of the pages in the browser (home redone 2026-11-02).
 - Category pages show Acts only, without counts of rules/notifications per Act: that needs tab counts
   in `index.json` (scraper export change + `docs/CONTENT.md`).
@@ -64,6 +66,28 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   PDF thumbnails, State Acts when the scraper has them.
 
 ## History
+
+### 2026-11-18 — PDF language popup instead of direct buttons (owner)
+- Owner: no language buttons on the page; clicking the PDF shows a popup beside it with Hindi / English … options.
+- New `partials/pdf-menu.php` (the popup, `<details class="pdf-pick">`, works without JS). `act-pdfs.php`: one PDF →
+  thumbnail link as before; more → the thumbnail opens the popup. `file-links.php`: one PDF → "View" (+ ⤓); more →
+  "View ▾" opens the popup (⤓ per language inside it outside tables).
+- `site.js?v=4`: popup placed beside the PDF (left, else right, else below; `position:fixed` so scrolling tables don't
+  clip it), one open at a time, closes on outside click, Escape, scroll, resize or after a pick. `site.css?v=14`.
+- Checked: `node --check` ok, `php -l` ok, `php tests/run.php` → 115 checks passed. Browser (local, desktop + mobile):
+  fugitive-economic-offenders-act-2018 thumbnail → popup English / हिन्दी with the right PDF links; Escape and an
+  outside click close it; disaster-management-act-2005/notifications "View ▾" → popup beside the button. Not committed.
+
+### 2026-11-18 — PDF language buttons (owner: show all available languages)
+- `pdf_choices()` (`src/helpers.php`, replaces `english_file()`): every archived PDF once (by sha256), ordered English,
+  English + हिन्दी (`bi`), हिन्दी, PDF (`unknown`); same label twice → "English 2". A file labelled `en` whose name is
+  `H<digit>…` (H2018-17.pdf, h201949.pdf) is shown as हिन्दी: display-only workaround for the export's mislabel.
+- Act head (`partials/act-pdfs.php`): thumbnail opens the first PDF; with more than one, a button per language below it,
+  each opening its PDF in a new tab. Document tables/lists (`partials/file-links.php`): one PDF → "View" as before;
+  more → one button per language (+ ⤓ download each outside tables). CSS `.pdf-langs`, `site.css?v=13`.
+- Checked: `php -l` ok; `php tests/run.php` → 115 checks passed. Browser (local): fugitive-economic-offenders-act-2018
+  shows English + हिन्दी, both links 200 `application/pdf`; disaster-management-act-2005/notifications shows two
+  "English + हिन्दी" buttons for a document with two bilingual PDFs; mobile layout ok. Not committed.
 
 ### 2026-11-18 — Production on act.legalquery.in; PDF icon cache-busting
 - Server: code pulled (fb2d078), `content/` (format 3) uploaded with FileZilla; `systemctl restart php8.3-fpm` was

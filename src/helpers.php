@@ -99,26 +99,51 @@ function tidy_text(string $text): string
 }
 
 /**
- * The one PDF shown for a document or Act: English only for now, no language buttons (owner,
- * 2026-11-04). Preference en, bi, other, then hi (so a Hindi-only document still has its PDF).
- * Files not archived yet are skipped.
+ * Every archived PDF of a document or Act, one choice per file, for the language buttons (owner,
+ * 2026-11-18: show all available languages; replaces "English only", 2026-11-04). Order: English,
+ * Bilingual, Hindi, other. The same file (sha256) is listed once; files not archived yet are skipped.
+ *
+ * Each choice is the file entry plus `lang` (en|bi|hi|unknown) and `label` ("English", "हिन्दी",
+ * "English + हिन्दी", "PDF"). A file the export labels `en` whose India Code name starts with H and a
+ * digit (H2018-17.pdf, h201949.pdf) is a Hindi PDF mislabelled by the export, shown as Hindi until the
+ * export fixes it. Two files with the same label get "2", "3" after it.
  *
  * @param list<array<string, mixed>> $files
  *
- * @return array<string, mixed>|null
+ * @return list<array<string, mixed>>
  */
-function english_file(array $files): ?array
+function pdf_choices(array $files): array
 {
-    $rank = ['en' => 0, 'bi' => 1, 'hi' => 3];
-    $best = null;
-    foreach ($files as $file) {
-        if (empty($file['sha256'])) {
+    $order = ['en' => 0, 'bi' => 1, 'hi' => 2];
+    $names = ['en' => 'English', 'bi' => 'English + हिन्दी', 'hi' => 'हिन्दी'];
+    $seen = [];
+    $choices = [];
+    foreach ($files as $i => $file) {
+        $sha = (string) ($file['sha256'] ?? '');
+        if ($sha === '' || isset($seen[$sha])) {
             continue;
         }
-        $r = $rank[$file['language'] ?? ''] ?? 2;
-        if ($best === null || $r < $best[0]) {
-            $best = [$r, $file];
+        $seen[$sha] = true;
+        $lang = (string) ($file['language'] ?? 'unknown');
+        if ($lang === 'en' && preg_match('/^h\d/i', (string) ($file['filename'] ?? ''))) {
+            $lang = 'hi';
+        }
+        $lang = isset($order[$lang]) ? $lang : 'unknown';
+        $choices[] = [$order[$lang] ?? 3, $i, $file + ['lang' => $lang, 'label' => $names[$lang] ?? 'PDF']];
+    }
+    usort($choices, static fn(array $a, array $b): int => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
+    $choices = array_column($choices, 2);
+    $count = array_count_values(array_column($choices, 'label'));
+    $n = [];
+    foreach ($choices as &$choice) {
+        $label = $choice['label'];
+        if ($count[$label] > 1) {
+            $n[$label] = ($n[$label] ?? 0) + 1;
+            if ($n[$label] > 1) {
+                $choice['label'] = $label . ' ' . $n[$label];
+            }
         }
     }
-    return $best[1] ?? null;
+    unset($choice);
+    return $choices;
 }

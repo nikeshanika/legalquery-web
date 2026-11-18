@@ -167,11 +167,25 @@ body { overflow-x:clip; }
                  align-items:center; justify-content:center; font-size:14px; }
 .act-pdfs { flex:none; display:flex; flex-direction:column; align-items:center; gap:10px; width:150px; }
 .pdf-thumb { margin:0; text-align:center; }
-.pdf-thumb a { display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--primary-blue); }
 .pdf-thumb img { display:block; width:85px; height:110px; border:1px solid var(--border-color); border-radius:3px;
                  box-shadow:0 2px 6px rgba(0,0,0,.12); background:#fff; }
 .pdf-thumb a:hover img { box-shadow:0 4px 12px rgba(0,0,0,.18); }
 .pdf-thumb figcaption { font-size:14px; text-decoration:underline; overflow-wrap:anywhere; }
+.pdf-thumb summary, .pdf-thumb a { display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--primary-blue); }
+.pdf-thumb summary:hover img { box-shadow:0 4px 12px rgba(0,0,0,.18); }
+.pdf-thumb-name { font-size:14px; text-decoration:underline; overflow-wrap:anywhere; }
+/* PDF in several languages: click → popup beside it with one button per language (site.js positions it) */
+.pdf-pick { position:relative; display:inline-block; }
+.pdf-pick > summary { list-style:none; cursor:pointer; }
+.pdf-pick > summary.view { white-space:nowrap; }
+.pdf-pick > summary::-webkit-details-marker { display:none; }
+.pdf-menu { position:absolute; z-index:30; top:0; right:calc(100% + 10px); display:flex; flex-direction:column; gap:6px;
+            min-width:170px; padding:10px; background:#fff; border:1px solid var(--border-color); border-radius:8px;
+            box-shadow:0 8px 24px rgba(0,0,0,.16); text-align:left; }
+.pdf-menu.placed { position:fixed; right:auto; }
+.pdf-menu-title { margin:0 0 2px; font-size:12px; font-weight:600; color:var(--text-gray); text-transform:uppercase; letter-spacing:.04em; }
+.pdf-menu-row { display:flex; gap:6px; }
+.pdf-menu-row .view:first-child { flex:1; text-align:center; font-size:13.5px; padding:6px 10px; }
 
 /* tabs (one URL per tab) */
 .tabs { display:flex; gap:2px; border-bottom:1px solid #d1d5db; overflow-x:auto; scrollbar-width:none; margin-bottom:20px; }
@@ -303,6 +317,7 @@ body { overflow-x:clip; }
   .act-head { flex-direction:column; gap:16px; }
   .act-head h1 { font-size:23px; }
   .act-pdfs { align-items:flex-start; width:auto; }
+  .act-pdfs .pdf-menu { right:auto; left:calc(100% + 10px); }
   .listbar-right { margin-left:0; }
   .panel { padding:14px 12px 18px; }
   .badge { min-width:0; }

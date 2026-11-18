@@ -1,9 +1,10 @@
 <?php
 /**
- * The Act's PDF as a thumbnail with its file name (like India Code). One PDF, English only for now,
- * with no language buttons (owner, 2026-11-04): see english_file(). The English/हिन्दी switch is in
- * git history (bca7d3a) for when Hindi comes back. No QR code. Not archived yet → not shown (no links
- * to India Code, owner 2026-11-03).
+ * The Act's PDF as a thumbnail with its file name (like India Code). One PDF: the thumbnail opens it.
+ * More than one language: clicking the thumbnail opens a small popup beside it with one button per
+ * language (English, हिन्दी, English + हिन्दी …); each opens that PDF (owner, 2026-11-18): see
+ * pdf_choices() and partials/pdf-menu.php. No QR code. Not archived yet → not shown (no links to
+ * India Code, owner 2026-11-03).
  *
  * The thumbnail is a demo image for now; swap $thumb for real first-page thumbnails later.
  *
@@ -13,17 +14,28 @@
 use LegalQueryWeb\Url;
 
 $thumb = $view->asset('/assets/img/pdf-thumb-demo.svg?v=2');
-$file = english_file($files);
-if (!$file) {
+$choices = pdf_choices($files);
+if (!$choices) {
     return;
 }
-$url = Url::file($file);
+$first = $choices[0];
+$title = static fn(array $f): string => $f['filename'] . (!empty($f['size']) ? ' · ' . format_size($f['size']) : '');
 ?>
 <div class="act-pdfs">
+<?php if (count($choices) === 1): ?>
   <figure class="pdf-thumb">
-    <a href="<?= e($url) ?>" target="_blank" rel="noopener" title="<?= e($file['filename'] . ($file['size'] ? ' · ' . format_size($file['size']) : '')) ?>">
+    <a href="<?= e(Url::file($first)) ?>" target="_blank" rel="noopener" title="<?= e($title($first)) ?>">
       <img src="<?= e($thumb) ?>" width="85" height="110" alt="">
-      <figcaption><?= e($file['filename']) ?></figcaption>
+      <figcaption><?= e($first['filename']) ?></figcaption>
     </a>
   </figure>
+<?php else: ?>
+  <details class="pdf-pick pdf-thumb">
+    <summary title="PDF available in <?= count($choices) ?> versions: choose a language">
+      <img src="<?= e($thumb) ?>" width="85" height="110" alt="">
+      <span class="pdf-thumb-name"><?= e($first['filename']) ?></span>
+    </summary>
+    <?= $view->partial('pdf-menu', ['choices' => $choices, 'download' => false]) ?>
+  </details>
+<?php endif; ?>
 </div>
