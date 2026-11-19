@@ -231,6 +231,43 @@ check('pdf choices same file once', $labels([$pdf('en', true, 'a.pdf', 's1'), $p
 check('pdf choices H name is Hindi', $labels([$pdf('en', true, 'H2018-17.pdf'), $pdf('en', true, 'A2018-17.pdf')]), ['English', 'हिन्दी']);
 check('pdf choices numbered', $labels([$pdf('en', true, '197228.pdf'), $pdf('en', true, 'a1972-28.pdf'), $pdf('hi', true, 'hH1972-28.pdf')]), ['English', 'English 2', 'हिन्दी']);
 check('pdf choices lang', array_column(pdf_choices([$pdf('en', true, 'h201949.pdf')]), 'lang'), ['hi']);
+// PDF question (PdfGate): signed token, in time, one use only.
+$usedDir = sys_get_temp_dir() . '/lqw-test-used-' . bin2hex(random_bytes(4));
+$gate = new \LegalQueryWeb\PdfGate(str_repeat('k', 32), $usedDir);
+$q = $gate->question(1000);
+$right = (string) ($q['a'] + $q['b']);
+check('pdf gate wrong answer', $gate->check($q['token'], (string) ($q['a'] + $q['b'] + 1), 1000), false);
+check('pdf gate expired', $gate->check($q['token'], $right, 1000 + \LegalQueryWeb\PdfGate::FORM_TTL + 1), false);
+check('pdf gate bad input', [$gate->check($q['token'], 'abc', 1000), $gate->check('x', $right, 1000)], [false, false]);
+check('pdf gate other secret', (new \LegalQueryWeb\PdfGate(str_repeat('z', 32), $usedDir))->check($q['token'], $right, 1000), false);
+check('pdf gate right answer', $gate->check($q['token'], " $right ", 1000), true);
+check('pdf gate token used once', $gate->check($q['token'], $right, 1000), false);
+array_map('unlink', glob("$usedDir/*") ?: []);
+rmdir($usedDir);
+check('pdf question route', route('/pdf-question'), 'FileController::question []');
+
+Jurisdiction::register(['puducherry' => 'Puducherry']);
+check('jurisdiction short label', [Jurisdiction::short('central'), Jurisdiction::short('puducherry')], ['Central', 'Puducherry']);
+Jurisdiction::register([]);
+
+// ---- readable Act PDF URLs (owner, 2026-11-19) ----
+check('act pdf route', route('/acts/central/companies-act-2013.pdf'), 'FileController::actPdf {"jurisdiction":"central","name":"companies-act-2013"}');
+check('act pdf route hindi', route('/acts/central/companies-act-2013-hindi.pdf'), 'FileController::actPdf {"jurisdiction":"central","name":"companies-act-2013-hindi"}');
+check('act pdf route bad name', [route('/acts/central/Companies.pdf'), route('/acts/central/x/y.pdf'), route('/acts/kerala/x.pdf')], [null, null, null]);
+check('act pdf canonical path', App::canonicalPath('/Acts/Central/X-Act.PDF'), '/acts/central/x-act.pdf');
+check('act pdf url', [Url::actPdf('central', 'x-act-2020'), Url::actPdf('central', 'x-act-2020-hindi', true)], ['/acts/central/x-act-2020.pdf', '/acts/central/x-act-2020-hindi.pdf?download=1']);
+check('pdf url prefers href', [Url::pdf(['href' => '/acts/central/x.pdf'], true), Url::pdf(['sha256' => 'ff', 'filename' => 'a.pdf'])], ['/acts/central/x.pdf?download=1', '/files/ff/a.pdf']);
+$names = fn(array $files): array => array_column(\LegalQueryWeb\ActPdf::choices(['jurisdiction' => 'central', 'slug' => 'x-act-1972', 'files' => $files]), 'href');
+check('act pdf names', $names([$pdf('hi', true, 'hH1972-28.pdf'), $pdf('en', true, '197228.pdf'), $pdf('en', true, 'a1972-28.pdf')]), ['/acts/central/x-act-1972.pdf', '/acts/central/x-act-1972-english-2.pdf', '/acts/central/x-act-1972-hindi.pdf']);
+check('act pdf names bilingual and unknown', $names([$pdf('bi'), $pdf('unknown'), $pdf('hi'), $pdf('hi', true, 'h2.pdf')]), ['/acts/central/x-act-1972-english-hindi.pdf', '/acts/central/x-act-1972-hindi.pdf', '/acts/central/x-act-1972-hindi-2.pdf', '/acts/central/x-act-1972.pdf']);
+check('act pdf names only hindi', $names([$pdf('hi')]), ['/acts/central/x-act-1972-hindi.pdf']);
+check('act pdf names not archived', $names([$pdf('en', false)]), []);
+check('act pdf candidates', \LegalQueryWeb\ActPdf::candidates('hindi-act-1962-english-hindi-2'), ['hindi-act-1962-english-hindi-2', 'hindi-act-1962', 'hindi-act-1962-english']);
+check('act pdf candidates main', \LegalQueryWeb\ActPdf::candidates('hindi-sahitya-sammelan-act-1962'), ['hindi-sahitya-sammelan-act-1962']);
+check('act pdf candidates hindi', \LegalQueryWeb\ActPdf::candidates('x-act-hindi'), ['x-act-hindi', 'x-act']);
+$keralaAct = $content->act('central', $kerala);
+check('fixture act pdf', \LegalQueryWeb\ActPdf::find($keralaAct, $kerala)['href'] ?? null, "/acts/central/$kerala.pdf");
+check('fixture act pdf missing', \LegalQueryWeb\ActPdf::find($keralaAct, "$kerala-hindi"), null);
 check('tidy text', tidy_text("7 \n \n\nTHE FIRST SCHEDULE \n\n\n \n1.   Act  \n \n "), "7\n\nTHE FIRST SCHEDULE\n\n1.   Act");
 
 echo $failures ? "\n$failures of $count checks failed\n" : "$count checks passed\n";

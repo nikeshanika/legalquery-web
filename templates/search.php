@@ -7,6 +7,7 @@
  * @var list<array<string, mixed>> $results
  * @var array<string, mixed> $pager
  */
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\Url;
 
 ?>
@@ -23,12 +24,12 @@ use LegalQueryWeb\Url;
   <div class="results-bar"><span><?php if ($pager['total']): ?>Showing <b><?= $pager['from'] ?></b>–<b><?= $pager['to'] ?></b> of <b><?= number_format($pager['total']) ?></b> results for “<?= e($q) ?>”<?php else: ?>No results for “<?= e($q) ?>”<?php endif; ?></span></div>
 <?php foreach ($results as $hit): ?>
 <?php if ($hit['type'] === 'act'): ?>
-  <?= $view->partial('act-rows', ['acts' => [$hit['act']]]) ?>
+  <?= $view->partial('act-rows', ['acts' => [$hit['act']], 'show_where' => true]) ?>
 <?php else: ?>
   <div class="act-row">
     <div class="act-main">
       <h3><a href="<?= e($hit['url']) ?>"><span class="badge"><?= e($hit['label']) ?></span> <?= e($hit['heading']) ?></a></h3>
-      <div class="meta"><?= e($hit['act']['title']) ?></div>
+      <div class="meta"><?= e($hit['act']['title'] . ' · ' . Jurisdiction::short($hit['act']['jurisdiction'])) ?></div>
     </div>
   </div>
 <?php endif; ?>

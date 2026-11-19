@@ -22,9 +22,10 @@ highlight "States" in the menu and their breadcrumb is Home › States › <Stat
 | `/acts/central/{act}/rules` · `…/page/2` | Linked-document tab: `rules`, `notifications`, `regulations`, `orders`, `ordinances`, `statutes`, `circulars`, `appendices`, `amendments` (404 when empty) |
 | `/acts/central/{act}/section-2a` | **301** to the section inside the Act page: `/acts/central/{act}#section-2a` (or `…/page/N#…` when it is on page N). Sections have no page of their own (owner, 2026-11-03) |
 | `/acts/central/{act}/first-schedule` | **301** to `/acts/central/{act}/schedules#first-schedule` (same rule) |
-| `/files/{sha256}/{name}.pdf` | PDF inline; `?download=1` downloads |
+| `/acts/central/{act}.pdf` | The Act's own PDF by a readable name (owner, 2026-11-19), inline; `?download=1` downloads (file name `{act}.pdf`). English (or unknown language) `{act}.pdf`, Hindi `{act}-hindi.pdf`, English + Hindi in one PDF `{act}-english-hindi.pdf`; a second PDF of the same language gets `-2`, `-3` on the language word (`{act}-english-2.pdf`, `{act}-hindi-2.pdf`). Names come from `pdf_choices()` order (`src/ActPdf.php`). Only the URL is readable: the file on disk keeps its India Code name. A copy of another Act (`original`, e.g. a Central Act under a UT) sends `Link: rel="canonical"` to the original's PDF URL |
+| `/files/{sha256}/{name}.pdf` | Any PDF by checksum (linked documents: rules, notifications …), inline; `?download=1` downloads. A GET of an Act's own PDF here → **301** to its `/acts/…/{act}.pdf` URL (POST, the PDF question's answer, is still served) |
 | `/search?q=…` · `/search/page/2?q=…` | Search (`noindex`) |
-| `/sitemap.xml`, `/robots.txt` | Built from `site_url` in config. Above 50,000 URLs `/sitemap.xml` becomes an index of `/sitemap-1.xml`, `/sitemap-2.xml`, … (404 until then) |
+| `/sitemap.xml`, `/robots.txt` | Built from `site_url` in config. The sitemap lists every indexable page: home, `/states`, every page of each Act list, year list and category, and per Act its Sections pages (all `/page/N`, since section text is only there), Schedules, Details and every page of each linked-document tab (counts from `act.json`). Not listed: search, filtered lists, PDFs, redirects. Above 50,000 URLs `/sitemap.xml` becomes an index of `/sitemap-1.xml`, `/sitemap-2.xml`, … (404 until then) |
 | `/favicon.ico`, `/favicon.png` | Site icon (static files in `public/`) |
 
 Rules:
@@ -37,9 +38,14 @@ Rules:
 - A section or schedule is linked as `Url::provision()`: its Act's Sections page N or Schedules tab plus
   `#<slug>`; the page script opens that block. The sitemap lists no section/schedule URLs.
 - Slugs never change once published (see `CONTENT.md` › Slugs).
+- Titles and descriptions of a State/UT Act's pages add the State/UT name (`The X Act, 2005 – Ladakh – Sections and full
+  text`), so a Central Act listed under a UT doesn't share them with the Central page. Act Details uses the summary or
+  long title (if it says more than the short title), else the Act's facts: never the Sections page's description.
 - SEO in the `<head>` (`templates/layout.php`): title, description, canonical, prev/next, Open Graph
   and X card (image `share_image` in config), favicon. JSON-LD from `src/Seo.php`: `WebSite` +
   search box (home), `Legislation` (Act page and Act Details) and `BreadcrumbList` (printed by
   `partials/crumbs.php`).
 - HTML pages send an `ETag` (304 on `If-None-Match`); PDFs send `Link: rel="canonical"` to the URL
-  without `?download=1`.
+  without `?download=1`. `/files/…` PDFs are cached as immutable (the checksum is in the URL); `/acts/…/{act}.pdf` can
+  change with an export, so it sends `max-age=86400` and an `ETag` (the checksum). With `pdf_captcha` on, every PDF is
+  `no-store` and only opens after the question, so search engines cannot read the PDFs.

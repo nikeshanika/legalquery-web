@@ -9,29 +9,34 @@
  * The thumbnail is a demo image for now; swap $thumb for real first-page thumbnails later.
  *
  * @var LegalQueryWeb\View $view
- * @var list<array{filename: string, language: string, size: ?int, sha256?: string}> $files
+ * The PDFs open at their readable URLs (/acts/central/{act}.pdf, …-hindi.pdf; ActPdf).
+ *
+ * @var array<string, mixed> $act act.json
  */
+use LegalQueryWeb\ActPdf;
 use LegalQueryWeb\Url;
 
 $thumb = $view->asset('/assets/img/pdf-thumb-demo.svg?v=2');
-$choices = pdf_choices($files);
+$choices = ActPdf::choices($act);
 if (!$choices) {
     return;
 }
 $first = $choices[0];
+// With the PDF question on, one PDF also opens the popup (it holds the question).
+$popup = count($choices) > 1 || !empty($view->config['pdf_captcha']);
 $title = static fn(array $f): string => $f['filename'] . (!empty($f['size']) ? ' · ' . format_size($f['size']) : '');
 ?>
 <div class="act-pdfs">
-<?php if (count($choices) === 1): ?>
+<?php if (!$popup): ?>
   <figure class="pdf-thumb">
-    <a href="<?= e(Url::file($first)) ?>" target="_blank" rel="noopener" title="<?= e($title($first)) ?>">
+    <a href="<?= e(Url::pdf($first)) ?>" target="_blank" rel="noopener" title="<?= e($title($first)) ?>">
       <img src="<?= e($thumb) ?>" width="85" height="110" alt="">
       <figcaption><?= e($first['filename']) ?></figcaption>
     </a>
   </figure>
 <?php else: ?>
   <details class="pdf-pick pdf-thumb">
-    <summary title="PDF available in <?= count($choices) ?> versions: choose a language">
+    <summary title="<?= count($choices) > 1 ? 'PDF available in ' . count($choices) . ' versions: choose a language' : e($title($first)) ?>">
       <img src="<?= e($thumb) ?>" width="85" height="110" alt="">
       <span class="pdf-thumb-name"><?= e($first['filename']) ?></span>
     </summary>

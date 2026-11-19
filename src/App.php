@@ -26,8 +26,10 @@ final class App
 
         $view = new View(dirname(__DIR__) . '/templates', $this->config, $path);
         try {
-            if ($method !== 'GET' && $method !== 'HEAD') {
-                header('Allow: GET, HEAD');
+            // POST only for the PDF question (FileController); everything else is read-only.
+            $postable = str_starts_with($path, '/files/') || preg_match('#^/acts/[^/]+/[^/]+\.pdf$#', $path) === 1;
+            if ($method !== 'GET' && $method !== 'HEAD' && !($method === 'POST' && $postable)) {
+                header('Allow: ' . ($postable ? 'GET, HEAD, POST' : 'GET, HEAD'));
                 throw new HttpError(405);
             }
             $clean = self::canonicalPath($path);

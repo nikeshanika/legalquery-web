@@ -26,8 +26,8 @@ final class View
      * @param array<string, mixed> $vars
      * @param array{title: string, description?: string, canonical?: string|null, robots?: string,
      *   prev?: string|null, next?: string|null, nav?: string, status?: int, type?: string,
-     *   schema?: list<array<string, mixed>>} $meta `type` is the Open Graph type; `schema` holds
-     *   JSON-LD blocks (see Seo).
+     *   schema?: list<array<string, mixed>>, cache?: bool} $meta `type` is the Open Graph type; `schema` holds
+     *   JSON-LD blocks (see Seo); `cache` false = no ETag or Cache-Control (the caller sets its own).
      */
     public function page(string $template, array $vars, array $meta): void
     {
@@ -41,13 +41,14 @@ final class View
             'status' => 200,
             'type' => 'website',
             'schema' => [],
+            'cache' => true,
         ];
         $content = $this->render($template, $vars);
         $html = $this->render('layout', ['content' => $content, 'meta' => $meta]);
 
         http_response_code($meta['status']);
         header('Content-Type: text/html; charset=utf-8');
-        if ($meta['status'] === 200) {
+        if ($meta['status'] === 200 && $meta['cache']) {
             // Crawlers and browsers revalidate with If-None-Match and get a 304 when the
             // page has not changed since the last export.
             $etag = '"' . substr(hash('sha256', $html), 0, 32) . '"';

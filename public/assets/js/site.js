@@ -49,12 +49,47 @@
     menu.style.left = left + 'px';
     menu.style.top = top + 'px';
   };
+  // With the PDF question on, the popup is a form: a new question (/pdf-question) each time it
+  // opens; a language button POSTs the answer to that PDF, which opens in a new tab. A token works
+  // once, so after a submit the popup closes and the next opening asks a new question.
+  const ask = async (form) => {
+    const box = form.querySelector('.pdf-q');
+    const answer = form.elements.answer;
+    answer.value = '';
+    try {
+      const res = await fetch('/pdf-question', { cache: 'no-store', headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(String(res.status));
+      const q = await res.json();
+      form.querySelector('[data-q]').textContent = q.a + ' + ' + q.b;
+      form.elements.token.value = q.token;
+      answer.required = true;
+      box.hidden = false;
+      place(form.closest('details.pdf-pick'));
+      answer.focus();
+    } catch (e) {
+      // No question: the buttons POST without a token and the PDF URL asks the question as a page.
+      box.hidden = true;
+      answer.required = false;
+      form.elements.token.value = '';
+    }
+  };
   pickers.forEach((picker) => {
+    const form = picker.querySelector('form.pdf-menu');
     picker.addEventListener('toggle', () => {
-      if (picker.open) { closeAll(picker); place(picker); }
+      if (!picker.open) return;
+      closeAll(picker);
+      place(picker);
+      if (form) ask(form);
     });
     picker.querySelectorAll('.pdf-menu a').forEach((a) => a.addEventListener('click', () => { picker.open = false; }));
+    if (form) form.addEventListener('submit', () => { setTimeout(() => { picker.open = false; }, 0); });
   });
+  // Typing the answer (a phone keyboard scrolls and resizes the page) keeps the popup open.
+  const typing = () => document.activeElement && document.activeElement.closest && document.activeElement.closest('.pdf-menu');
+  const keepOrClose = () => {
+    const open = [...pickers].find((d) => d.open);
+    if (open && typing()) place(open); else closeAll();
+  };
   if (pickers.length) {
     document.addEventListener('click', (ev) => {
       if (!ev.target.closest('details.pdf-pick')) closeAll();
@@ -64,8 +99,8 @@
       const open = [...pickers].find((d) => d.open);
       if (open) { open.open = false; open.querySelector('summary').focus(); }
     });
-    window.addEventListener('scroll', () => closeAll(), { passive: true, capture: true });
-    window.addEventListener('resize', () => closeAll());
+    window.addEventListener('scroll', keepOrClose, { passive: true, capture: true });
+    window.addEventListener('resize', keepOrClose);
   }
 
   // The year filter applies as soon as a year is picked.

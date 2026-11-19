@@ -16,7 +16,7 @@ use LegalQueryWeb\Url;
 <section class="categories" aria-label="States and Union Territories">
   <div class="cat-grid">
 <?php foreach ($states as $state): ?>
-    <a class="card cat-card" href="<?= e(Url::actList($state['code'])) ?>"><strong><?= e($state['name']) ?></strong><span><?= number_format($state['acts']) ?> <?= $state['acts'] === 1 ? 'Act' : 'Acts' ?><?= $state['sections'] ? ' · ' . number_format($state['sections']) . ' sections' : '' ?></span></a>
+    <a class="card cat-card" href="<?= e(Url::actList($state['code'])) ?>"><strong><?= e($state['name']) ?></strong><span><?= number_format($state['acts']) ?> <?= $state['acts'] === 1 ? 'Act' : 'Acts' ?><?= $state['sections'] ? ' · ' . number_format($state['sections']) . ($state['sections'] === 1 ? ' section' : ' sections') : '' ?></span></a>
 <?php endforeach; ?>
   </div>
 </section>

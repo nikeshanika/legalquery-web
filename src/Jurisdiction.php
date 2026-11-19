@@ -63,6 +63,14 @@ final class Jurisdiction
     }
 
     /**
+     * "Central", "Kerala": the short label on search results, where Acts of every jurisdiction mix.
+     */
+    public static function short(string $code): string
+    {
+        return $code === self::DEFAULT ? 'Central' : self::detail($code);
+    }
+
+    /**
      * "Central (Parliament of India)", "Kerala": the Act Details row.
      */
     public static function detail(string $code): string

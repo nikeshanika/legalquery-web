@@ -27,6 +27,8 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   (`a2025-37_shed._l.pdf` …): the schedule text is shown (owner).
 - 2026-11-03: **no India Code URLs** anywhere: not in `content/` (the export rewrites/removes them), not in the
   templates. "Source: India Code, Government of India" stays as plain text (owner).
+- 2026-11-19: readable URLs for an Act's own PDFs: `/acts/central/{act}.pdf`, `{act}-hindi.pdf` … instead of
+  `/files/{sha256}/A2026-18.pdf`; only the URL changes, not the files (owner). PDF question (`pdf_captcha`) stays on for now.
 - 2026-11-18: PDF in several languages → no direct language buttons; clicking the PDF (thumbnail or "View") opens a
   popup beside it with one button per language (English, हिन्दी, English + हिन्दी …); the one clicked opens (owner;
   replaces 2026-11-04 "one View button, English PDF only"). One PDF → opens directly as before.
@@ -37,6 +39,17 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## Pending
 
+- SEO, scraper export (found 2026-11-19): (1) some Acts have **another Act's summary** (e.g.
+  `rajiv-gandhi-national-institute-of-youth-development-act-2012` shows the POCSO Act summary,
+  `maintenance-and-welfare-of-parents-and-senior-citizens-act-2007` the Indian Maritime University one) → wrong text and
+  duplicate descriptions; (2) `insurance-act-1938` section HTML has footnote links with bad `href`s (`1[`, `2`, `7*` …) →
+  11 broken internal links; (3) two Acts with the same title in one jurisdiction (`constitution-of-india` /
+  `constitution-of-india-act-1` under Andaman and Nicobar, two Ladakh "Natural Calamities" Acts) → duplicate titles.
+- SEO, owner decision: a Central Act listed under a UT (`original`) has the same sections as the Central page. Titles now
+  differ, but the text is a duplicate; a `rel=canonical` to the Central page would merge them in Google (the UT page then
+  is not shown in results).
+- Deploy the SEO fixes to act.legalquery.in, then resubmit `/sitemap.xml` in Google Search Console and check
+  Pages → "Why pages aren't indexed" there.
 - Scraper export (not this project): schedule `body_text` is raw PDF text: 364 of 402 start with the PDF page number
   (e.g. "7"), 16 contain the broken India Code watermark ("In / diaC / ode"). Clean it in the export.
 - Before all States / the full data set: content format 3 (split `files.json` by sha256 prefix; it is read on every
@@ -66,6 +79,51 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
   PDF thumbnails, State Acts when the scraper has them.
 
 ## History
+
+### 2026-11-19 — Search: Central / State chip on each result
+- Owner asked why "The Epidemic Diseases Act, 1897" gives 2 results: they are two India Code records, Central (12
+  sections) and Puducherry (1 section, Regulations; not linked as a copy). Search covers every jurisdiction, but the row
+  did not say which, so it looked like a duplicate.
+- `partials/act-rows.php`: optional `show_where` → green chip first ("Central", "Puducherry"; `Jurisdiction::short()`),
+  used by `search.php`; section/schedule hits show "Act title · Puducherry". "1 sections" → "1 section" (also schedules
+  and the `/states` cards).
+- Checks: `php tests/run.php` → 138 checks passed; `php -l` clean; browser: the search shows "Central" and "Puducherry"
+  chips and "1 section".
+
+### 2026-11-19 — SEO audit: every indexable page in the sitemap
+- Owner asked that every page be indexable and SEO-correct. Crawled all sitemap URLs on localhost:8800 (script: status,
+  canonical, robots, title, description, h1, internal links). Before: 5,204 URLs, all 200 with a self canonical and no
+  noindex, but **1,258 indexable pages were missing**: Sections `/page/N` of long Acts (section text is only there) and
+  tab pages 2+.
+- `SeoController`: sitemap adds every Sections page and every page of each linked-document tab (counts from `act.json`,
+  read only for Acts that have tabs; sitemap still ~0.07 s). Now 7,197 URLs; 0 indexable pages missing.
+- `ActController`: State/UT Act titles and descriptions add the State/UT name (68 duplicate titles/descriptions between a
+  Central Act and its UT copy are gone); Act Details gets its own description (summary / long title if longer than the
+  title, else Act No., enactment date, ministry) instead of repeating the Sections page's (≈180 duplicates gone, 60
+  too-short ones gone); all Act page descriptions capped at 160 characters.
+- Left (content, see Pending): 18 duplicate descriptions, 9 duplicate titles, broken links in the Insurance Act text.
+  ~4,900 titles are over 70 characters only because the Act names are long (Google shortens them; not an error).
+- Production (act.legalquery.in) checked: robots.txt and sitemap.xml 200 with https URLs, http → https 301, uppercase /
+  trailing slash → 301, canonical https. It has the old code until deployed.
+- Checks: `php tests/run.php` → 137 checks passed; `php -l` clean; crawl after the change: 7,197 sitemap URLs all 200,
+  canonical = URL, no noindex, 0 indexable pages outside the sitemap.
+
+### 2026-11-19 — Readable Act PDF URLs (owner)
+- New `src/ActPdf.php`: names an Act's PDFs from `pdf_choices()`: `{act}.pdf` (English/unknown), `{act}-hindi.pdf`,
+  `{act}-english-hindi.pdf`, then `-english-2`, `-hindi-2` …; `ActPdf::candidates()` maps a URL name back to Act slugs.
+- `Router`: `/acts/{jurisdiction}/{name}.pdf` → `FileController::actPdf`. `App`: POST allowed there (PDF question).
+  `Url::actPdf()`, `Url::pdf()` (readable URL when the file has one, else `/files/…`).
+- `FileController`: shared `send()`; Act PDFs send `Content-Disposition` `{act}.pdf`, ETag + `max-age=86400` (no-store
+  behind the question), canonical = the original Act's PDF URL for copies (`original`). GET of an Act's own PDF at
+  `/files/{sha256}/…` → 301 to the readable URL (keeps `?download=1`); linked documents keep `/files/`.
+- Templates `act-head`/`act-pdfs` (thumbnail + popup), `pdf-menu`, `file-links` and JSON-LD `encoding.contentUrl` use the new URLs.
+- `docs/URLS.md` updated. No `content/` or scraper change.
+- Note: with `pdf_captcha` on, crawlers still can't open the PDFs; the SEO gain needs the owner's call on the question.
+- Checks: `php tests/run.php` → 137 checks passed; `php -l` on all PHP files clean. On localhost:8800 (curl): Act page
+  posts to `/acts/central/kerala-alteration-of-name-act-2026.pdf`; old `/files/b00c…/A2026-18.pdf?download=1` → 301 to
+  `…act-2026.pdf?download=1`; after the right answer: 200 `application/pdf`, `attachment; filename="kerala-alteration-of-name-act-2026.pdf"`;
+  `national-service-act-1972` shows `.pdf`, `-english-2.pdf`, `-hindi.pdf`; unknown names 404; UT copy
+  (`andaman-and-nicobar-islands/right-of-children-…-2009.pdf`) sends canonical to the `central` PDF URL.
 
 ### 2026-11-18 — PDF language popup instead of direct buttons (owner)
 - Owner: no language buttons on the page; clicking the PDF shows a popup beside it with Hindi / English … options.

@@ -45,7 +45,7 @@ final class ActController extends Controller
             'pager' => $pager,
         ], [
             'nav' => self::nav($jurisdiction),
-            'title' => $this->withPage($row['title'] . ' – Sections and full text', $number),
+            'title' => $this->withPage($this->name($row) . ' – Sections and full text', $number),
             'description' => $this->describePage($this->description($row), $number),
             'canonical' => $link($number),
             'prev' => $pager['prev'],
@@ -67,13 +67,13 @@ final class ActController extends Controller
             'schedules' => $this->withText($row, 'SCHEDULE', $row['schedules']),
         ], [
             'nav' => self::nav($jurisdiction),
-            'title' => 'Schedules of ' . $row['title'],
-            'description' => sprintf(
+            'title' => 'Schedules of ' . $this->name($row),
+            'description' => Seo::description(sprintf(
                 '%s: %d schedule%s with full text and official PDFs.',
-                $row['title'],
+                $this->name($row),
                 count($row['schedules']),
                 count($row['schedules']) === 1 ? '' : 's',
-            ),
+            )),
             'type' => 'article',
         ]);
     }
@@ -102,10 +102,8 @@ final class ActController extends Controller
             'rows' => $rows,
         ], [
             'nav' => self::nav($jurisdiction),
-            'title' => $row['title'] . ' – Act details',
-            'description' => Seo::description(
-                ($row['summary_html'] ?? '') ?: (($row['long_title'] ?? '') ?: $this->description($row)),
-            ),
+            'title' => $this->name($row) . ' – Act details',
+            'description' => $this->detailsDescription($row),
             'type' => 'article',
             'schema' => [Seo::act($row, $this->absolute())],
         ]);
@@ -132,8 +130,8 @@ final class ActController extends Controller
             'pager' => $pager,
         ], [
             'nav' => self::nav($jurisdiction),
-            'title' => $this->withPage("$label under " . $row['title'], $number),
-            'description' => $this->describePage("$label made under " . $row['title'] . ', with official PDFs.', $number),
+            'title' => $this->withPage("$label under " . $this->name($row), $number),
+            'description' => $this->describePage(Seo::description("$label made under " . $this->name($row) . ', with official PDFs.', 150), $number),
             'canonical' => $link($number),
             'prev' => $pager['prev'],
             'next' => $pager['next'],
@@ -207,17 +205,51 @@ final class ActController extends Controller
     }
 
     /**
+     * The Act's title, with the State/UT for a State or UT Act ("The X Act, 1955 – Ladakh"), so a
+     * Central Act listed under a UT doesn't share its titles and descriptions with the Central page.
+     *
+     * @param array<string, mixed> $act
+     */
+    private function name(array $act): string
+    {
+        $where = (string) $act['jurisdiction'];
+        return $where === Jurisdiction::DEFAULT ? $act['title'] : $act['title'] . ' – ' . Jurisdiction::detail($where);
+    }
+
+    /**
+     * Act Details description: the summary or long title when it says more than the short title,
+     * else the Act's facts. Never the Sections page's description.
+     *
+     * @param array<string, mixed> $act
+     */
+    private function detailsDescription(array $act): string
+    {
+        foreach ([$act['summary_html'] ?? '', $act['long_title'] ?? ''] as $text) {
+            $text = Seo::description((string) $text);
+            if (mb_strlen($text) >= 50 && mb_strtolower(trim($text, ' .')) !== mb_strtolower(trim((string) $act['title'], ' .'))) {
+                return $text;
+            }
+        }
+        $facts = array_filter([
+            $act['act_number'] !== '' ? 'Act No. ' . $this->number($act) : '',
+            ($act['enactment_date'] ?? '') !== '' ? 'enacted on ' . format_date($act['enactment_date']) : '',
+            ($act['ministry'] ?? '') !== '' ? 'administered by the ' . $act['ministry'] : '',
+        ]);
+        return Seo::description('Details of ' . $this->name($act) . ($facts ? ': ' . implode(', ', $facts) : '') . '. Short and long title, dates, status and history.');
+    }
+
+    /**
      * @param array<string, mixed> $act
      */
     private function description(array $act): string
     {
-        $parts = [$act['title']];
+        $parts = [$this->name($act)];
         if ($act['act_number'] !== '') {
             $parts[] = 'Act No. ' . $this->number($act);
         }
         $parts[] = $act['sections']
             ? count($act['sections']) . ' sections with full text and official PDF'
             : 'full text in the official PDF';
-        return implode(' – ', $parts) . '.';
+        return Seo::description(implode(' – ', $parts) . '.');
     }
 }

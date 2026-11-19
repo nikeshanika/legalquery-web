@@ -80,6 +80,28 @@ final class Url
     }
 
     /**
+     * An Act's own PDF by its readable name (ActPdf): /acts/central/companies-act-2013.pdf,
+     * …-hindi.pdf.
+     */
+    public static function actPdf(string $jurisdiction, string $name, bool $download = false): string
+    {
+        return self::actList($jurisdiction) . '/' . rawurlencode($name) . '.pdf' . ($download ? '?download=1' : '');
+    }
+
+    /**
+     * A PDF's URL: its readable Act PDF URL when it has one (`href` from ActPdf), else by checksum.
+     *
+     * @param array<string, mixed> $file
+     */
+    public static function pdf(array $file, bool $download = false): string
+    {
+        if (isset($file['href'])) {
+            return $file['href'] . ($download ? '?download=1' : '');
+        }
+        return self::file($file, $download);
+    }
+
+    /**
      * A PDF by checksum. The file name part is only for people (and the download name).
      *
      * @param array{sha256?: string, filename?: string} $file

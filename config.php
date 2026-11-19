@@ -16,6 +16,11 @@ $config = [
     'content_dir' => __DIR__ . '/content',
     // Picture shown when a page is shared (Open Graph / X), 1200×630. Site path or full URL.
     'share_image' => '/assets/img/share.png',
+    // Ask a short sum ("What is 6 + 9 ?") before a PDF opens, against bulk downloading by bots.
+    'pdf_captcha' => true,
+    // Signs the question and the pass cookie. Set a long random value in config.local.php on the
+    // server (php -r 'echo bin2hex(random_bytes(32));'); empty = a random one in the temp folder.
+    'pdf_captcha_secret' => '',
     // Rows per page on every paged list.
     'per_page' => 20,
 ];

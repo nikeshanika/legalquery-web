@@ -33,7 +33,7 @@ foreach ($tabs as $tab) {
     <p class="ministry-box"><span class="ministry-icon" aria-hidden="true">🏛</span><b>Administered Ministry:</b> <?= e($act['ministry']) ?></p>
 <?php endif; ?>
   </div>
-  <?= $view->partial('act-pdfs', ['files' => $act['files']]) ?>
+  <?= $view->partial('act-pdfs', ['act' => $act]) ?>
 </header>
 <nav class="tabs" aria-label="Act contents">
 <?php foreach ($tabs as $tab): ?>

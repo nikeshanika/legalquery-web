@@ -113,15 +113,13 @@ final class Seo
             $data['legislationLegalForce'] = 'https://schema.org/InForce';
         }
         $encodings = [];
-        foreach ($act['files'] ?? [] as $file) {
-            if (isset($file['sha256'])) {
-                $encodings[] = [
-                    '@type' => 'LegislationObject',
-                    'encodingFormat' => 'application/pdf',
-                    'contentUrl' => $absolute(Url::file($file)),
-                    'inLanguage' => ['hi' => 'hi', 'bi' => ['en', 'hi']][$file['language']] ?? 'en',
-                ];
-            }
+        foreach (ActPdf::choices($act) as $file) {
+            $encodings[] = [
+                '@type' => 'LegislationObject',
+                'encodingFormat' => 'application/pdf',
+                'contentUrl' => $absolute(Url::pdf($file)),
+                'inLanguage' => ['hi' => 'hi', 'bi' => ['en', 'hi']][$file['lang']] ?? 'en',
+            ];
         }
         if ($encodings) {
             $data['encoding'] = $encodings;

@@ -47,7 +47,7 @@ final class SeoController extends Controller
     }
 
     /**
-     * Every indexable page: lists (all pages), Acts with their tabs, sections and schedules.
+     * Every indexable page: lists (all pages), Acts (every Sections page) with their tabs (every page).
      * Search and filtered lists are left out (noindex).
      *
      * @return list<string>
@@ -83,12 +83,21 @@ final class SeoController extends Controller
         foreach ($acts as $act) {
             [$where, $slug] = [$act['jurisdiction'], $act['slug']];
             $urls[] = Url::act($where, $slug);
+            // Sections are paged; their text is only on these pages (no page per section).
+            for ($n = 2, $last = (int) ceil((int) ($act['sections'] ?? 0) / $per); $n <= $last; $n++) {
+                $urls[] = Url::paged(Url::act($where, $slug), $n);
+            }
             $urls[] = Url::act($where, $slug, 'details');
             if ($act['schedules']) {
                 $urls[] = Url::act($where, $slug, 'schedules');
             }
+            // Linked-document tabs, every page: the counts are in act.json (index.json has the names only).
+            $counts = ($act['tabs'] ?? []) ? ($this->content->act($where, $slug)['tabs'] ?? []) : [];
             foreach ($act['tabs'] ?? [] as $tab) {
                 $urls[] = Url::act($where, $slug, $tab);
+                for ($n = 2, $last = (int) ceil((int) ($counts[$tab] ?? 0) / $per); $n <= $last; $n++) {
+                    $urls[] = Url::paged(Url::act($where, $slug, $tab), $n);
+                }
             }
         }
         return $urls;

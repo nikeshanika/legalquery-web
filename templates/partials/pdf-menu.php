@@ -1,23 +1,52 @@
 <?php
 /**
- * The popup listing a document's PDFs, one button per language, shown when the reader clicks a PDF
- * that exists in more than one language (owner, 2026-11-18). Used inside <details class="pdf-pick">
- * (works without JavaScript; site.js places it beside the clicked PDF and closes it).
+ * The popup for a document's PDFs, used inside <details class="pdf-pick"> (site.js places it beside
+ * the clicked PDF and closes it). One button per language (English, हिन्दी, English + हिन्दी …,
+ * owner 2026-11-18), or one "Open PDF" button.
  *
+ * With `pdf_captcha` on, the popup also asks a short sum every time (owner, 2026-11-19): site.js
+ * fetches it from /pdf-question when the popup opens, and a button POSTs the answer to that PDF's URL
+ * (FileController), which sends the PDF in a new tab. Without JavaScript the question stays hidden
+ * and the PDF URL asks it as a page instead.
+ *
+ * @var LegalQueryWeb\View $view
  * @var list<array<string, mixed>> $choices pdf_choices()
  * @var bool $download Also a download button per PDF.
  */
 use LegalQueryWeb\Url;
 
+$captcha = !empty($view->config['pdf_captcha']);
+$several = count($choices) > 1;
+$tip = static fn(array $f): string => $f['filename'] . (!empty($f['size']) ? ' · ' . format_size($f['size']) : '');
 ?>
+<?php if ($captcha): ?>
+<form class="pdf-menu" method="post" target="_blank" aria-label="Open the PDF">
+  <p class="pdf-menu-title"><?= $several ? 'Choose language' : 'Open PDF' ?></p>
+  <div class="pdf-q" hidden>
+    <label>What is <span data-q>?</span> ?
+      <input class="input" name="answer" inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" autocomplete="off" aria-label="Your answer">
+    </label>
+    <input type="hidden" name="token" value="">
+  </div>
+<?php foreach ($choices as $file): ?>
+  <div class="pdf-menu-row">
+    <button class="view" type="submit" formaction="<?= e(Url::pdf($file)) ?>" title="<?= e($tip($file)) ?>"<?= $file['lang'] === 'hi' ? ' lang="hi"' : '' ?>><?= e($several ? $file['label'] : 'Open PDF') ?></button>
+<?php if ($download): ?>
+    <button class="view" type="submit" formaction="<?= e(Url::pdf($file, true)) ?>" formtarget="_self" title="Download <?= e($file['filename']) ?>" aria-label="Download <?= e($file['label']) ?> PDF">⤓</button>
+<?php endif; ?>
+  </div>
+<?php endforeach; ?>
+</form>
+<?php else: ?>
 <div class="pdf-menu" role="group" aria-label="Choose the PDF language">
   <p class="pdf-menu-title">Choose language</p>
 <?php foreach ($choices as $file): ?>
   <div class="pdf-menu-row">
-    <a class="view" href="<?= e(Url::file($file)) ?>" target="_blank" rel="noopener" title="<?= e($file['filename'] . (!empty($file['size']) ? ' · ' . format_size($file['size']) : '')) ?>"<?= $file['lang'] === 'hi' ? ' lang="hi"' : '' ?>><?= e($file['label']) ?></a>
+    <a class="view" href="<?= e(Url::pdf($file)) ?>" target="_blank" rel="noopener" title="<?= e($tip($file)) ?>"<?= $file['lang'] === 'hi' ? ' lang="hi"' : '' ?>><?= e($file['label']) ?></a>
 <?php if ($download): ?>
-    <a class="view" href="<?= e(Url::file($file, true)) ?>" title="Download <?= e($file['filename']) ?>" aria-label="Download <?= e($file['label']) ?> PDF">⤓</a>
+    <a class="view" href="<?= e(Url::pdf($file, true)) ?>" title="Download <?= e($file['filename']) ?>" aria-label="Download <?= e($file['label']) ?> PDF">⤓</a>
 <?php endif; ?>
   </div>
 <?php endforeach; ?>
 </div>
+<?php endif; ?>
