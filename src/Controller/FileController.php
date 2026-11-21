@@ -108,6 +108,10 @@ final class FileController extends Controller
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') {
             return;
         }
+        // Stream the PDF instead of holding it in public/index.php's output buffer.
+        while (ob_get_level() > 0) {
+            ob_end_flush();
+        }
         readfile($path);
     }
 
