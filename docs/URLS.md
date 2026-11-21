@@ -47,5 +47,10 @@ Rules:
   `partials/crumbs.php`).
 - HTML pages send an `ETag` (304 on `If-None-Match`); PDFs send `Link: rel="canonical"` to the URL
   without `?download=1`. `/files/…` PDFs are cached as immutable (the checksum is in the URL); `/acts/…/{act}.pdf` can
-  change with an export, so it sends `max-age=86400` and an `ETag` (the checksum). With `pdf_captcha` on, every PDF is
-  `no-store` and only opens after the question, so search engines cannot read the PDFs.
+  change with an export, so it sends `max-age=86400` and an `ETag` (the checksum). With `pdf_captcha` on, every PDF only
+  opens after the question, so search engines cannot read the PDFs; the question page is `no-store`, the PDF sent after it
+  `private, max-age=300` (never in Cloudflare or a proxy; the reader's browser keeps it, which Chrome's PDF viewer needs
+  to download a PDF that came from a POST). A right answer also sets a
+  pass cookie (`lq_pdf_pass`, HttpOnly, path = that one PDF URL, 5 minutes), so the browser's PDF viewer can download or
+  save the PDF: it fetches the same URL again (Chrome re-sends the same POST, its token already used; others GET).
+  With a valid pass that URL sends the PDF for GET and POST; without it, the question page.

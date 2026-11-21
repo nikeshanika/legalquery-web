@@ -80,6 +80,37 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## History
 
+### 2026-11-21 — Fix (2nd try): Chrome viewer download failed every time ("Check Internet connection" → Resume)
+- Owner's screenshot: every download from the viewer fails with "Check Internet connection", "Resume" works. So Chrome
+  sent no request at all: for a PDF that came from a POST it downloads only from its own cache, and the PDF was `no-store`.
+  (The previous entry's cause, a re-sent POST, was not what Chrome does here; that change is harmless and stays.)
+- Fix: the PDF sent after the question is `Cache-Control: private, max-age=300` (PASS_TTL) instead of `no-store`:
+  shared caches (Cloudflare, proxies) still never keep it; the question page stays `no-store`.
+- Checks: `php -l` → no errors; `php tests/run.php` → 144 checks passed; curl: answer POST → `private, max-age=300`,
+  application/pdf; GET without answer → question page `no-store`. Owner checked in Chrome (2026-11-21): the viewer's
+  download now works the first time, no "Resume".
+
+### 2026-11-21 — Fix: first download from Chrome's PDF viewer failed, "Resume" worked
+- Owner: `/acts/central/bengal-indigo-contracts-act-1836-hindi.pdf` opens; download first fails, Chrome shows "Resume",
+  which then downloads. Cause: Chrome's viewer downloads a PDF that came from a POST by re-sending the same POST; its
+  token is already used, so the server answered 422 with the question page. "Resume" sends a GET, which the pass let through.
+- Fix (`FileController::send`): a valid pass cookie for that URL now sends the PDF for POST as well as GET.
+- Checks: `php -l` → no errors; `php tests/run.php` → 144 checks passed; curl: answer POST → PDF 282,930 bytes; same POST
+  again with the cookie → 200 PDF, identical to `H1836-10.pdf` (was 422 HTML); same POST without cookie → 422; cookie on the
+  English PDF → 422; GET without cookie → question page. Browser pane (fetch): first POST and repeat POST both 200 PDF.
+
+### 2026-11-21 — Fix: PDF opened but could not be downloaded (PDF question on)
+- Owner: `/acts/central/central-armed-police-forces-general-administration-act-2026.pdf` opens but does not download.
+  Cause: with `pdf_captcha` on, the PDF comes only as the answer to a POST; the browser's PDF viewer downloads by
+  GETting the same URL again (`no-store`, nothing cached), and a GET gets the question page (HTML), so the download fails.
+- Fix: a right answer also sets a pass cookie `lq_pdf_pass` (`PdfGate::pass()`: expiry + HMAC over the URL path), HttpOnly,
+  SameSite=Lax, Secure on HTTPS requests, `Path` = that one PDF URL, 5 minutes (`PASS_TTL`). A GET of that URL (also
+  `?download=1`) with a valid pass sends the PDF. Other PDFs still ask; the popup still asks every time.
+- Checks: `php -l` → no errors; `php tests/run.php` → 144 checks passed (4 new: same path, other path, expired, forged);
+  curl: GET without answer → HTML; POST with answer → PDF inline + `Set-Cookie`; then GET and `?download=1` → 200
+  application/pdf, 288,181 bytes, `attachment` for download, identical to `A2026-9.pdf`; same cookie on another Act's PDF
+  → question page. Browser pane: download URL HTML before the answer, PDF `attachment` after it.
+
 ### 2026-11-19 — PDF name under the thumbnail: 12 characters + "…" (owner)
 - Owner: like India Code, the name under the Act's PDF thumbnail shows at most 12 characters, then "…"
   (`custom_tariff_act,_1975.pdf` → `custom_tarif…`); the full name is in the tooltip.
