@@ -243,6 +243,13 @@ check('pdf gate bad input', [$gate->check($q['token'], 'abc', 1000), $gate->chec
 check('pdf gate other secret', (new \LegalQueryWeb\PdfGate(str_repeat('z', 32), $usedDir))->check($q['token'], $right, 1000), false);
 check('pdf gate right answer', $gate->check($q['token'], " $right ", 1000), true);
 check('pdf gate token used once', $gate->check($q['token'], $right, 1000), false);
+// Pass cookie after a right answer: same PDF path only, PASS_TTL seconds (viewer download, 2026-11-21).
+$pass = $gate->pass('/acts/central/x-act-2026.pdf', 1000);
+check('pdf pass same path', $gate->passes($pass, '/acts/central/x-act-2026.pdf', 1000 + \LegalQueryWeb\PdfGate::PASS_TTL), true);
+check('pdf pass other path', $gate->passes($pass, '/acts/central/y-act-2026.pdf', 1000), false);
+check('pdf pass expired', $gate->passes($pass, '/acts/central/x-act-2026.pdf', 1001 + \LegalQueryWeb\PdfGate::PASS_TTL), false);
+check('pdf pass forged', [$gate->passes('9999999999.' . str_repeat('0', 64), '/acts/central/x-act-2026.pdf', 1000), $gate->passes('', '/a.pdf', 1000),
+    (new \LegalQueryWeb\PdfGate(str_repeat('z', 32), $usedDir))->passes($pass, '/acts/central/x-act-2026.pdf', 1000)], [false, false, false]);
 array_map('unlink', glob("$usedDir/*") ?: []);
 rmdir($usedDir);
 check('short text', [short_text('A2026-18.pdf'), short_text('a1972-28_hindi.pdf'), short_text('हिन्दी-अधिनियम-२०२६.pdf')], ['A2026-18.pdf', 'a1972-28_hin…', 'हिन्दी-अधिनियम-२०…']);

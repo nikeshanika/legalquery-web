@@ -70,9 +70,21 @@ final class FileController extends Controller
         $self ??= $url;
         $gate = $this->gate();
         if ($gate) {
+            $urlPath = (string) parse_url($self, PHP_URL_PATH);
             $token = (string) ($_POST['token'] ?? '');
             $asked = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $token !== '';
-            if (!$asked || !$gate->check($token, (string) ($_POST['answer'] ?? ''))) {
+            // A right answer gives a pass for this one PDF URL for a few minutes. With a valid pass the PDF goes
+            // out for GET and POST alike: the browser's PDF viewer downloads by fetching the URL again, Chrome
+            // by sending the same POST again (its token already used up), other browsers by a GET.
+            if ($asked && $gate->check($token, (string) ($_POST['answer'] ?? ''))) {
+                setcookie(PdfGate::PASS_COOKIE, $gate->pass($urlPath), [
+                    'expires' => time() + PdfGate::PASS_TTL,
+                    'path' => $urlPath,
+                    'secure' => self::https(),
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
+            } elseif (!$gate->passes((string) ($_COOKIE[PdfGate::PASS_COOKIE] ?? ''), $urlPath)) {
                 $this->askQuestion($gate, $name, Url::pdf(['href' => $self], $download), $asked);
                 return;
             }
@@ -80,9 +92,11 @@ final class FileController extends Controller
 
         // ?download=1 is the same file: point search engines at the plain URL.
         header(sprintf('Link: <%s>; rel="canonical"', $this->view->absolute($url)));
-        // Behind the question the PDF must not sit in any cache (Cloudflare, proxies), or the cache
-        // would hand it out to anyone.
-        header('Cache-Control: ' . ($gate ? 'no-store' : $cache));
+        // Behind the question the PDF must not sit in a shared cache (Cloudflare, proxies), or that cache
+        // would hand it out to anyone: `private`. The reader's own browser may keep it for the pass's
+        // lifetime: Chrome's PDF viewer downloads a PDF that came from a POST only from its cache, and with
+        // `no-store` that download failed ("Check Internet connection", then "Resume").
+        header('Cache-Control: ' . ($gate ? 'private, max-age=' . PdfGate::PASS_TTL : $cache));
         if (!$gate && $etag !== null) {
             header('ETag: ' . $etag);
             $sent = array_map('trim', explode(',', (string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')));
@@ -96,6 +110,10 @@ final class FileController extends Controller
         header(sprintf('Content-Disposition: %s; filename="%s"', $download ? 'attachment' : 'inline', $name));
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') {
             return;
+        }
+        // Stream the PDF instead of holding it in public/index.php's output buffer.
+        while (ob_get_level() > 0) {
+            ob_end_flush();
         }
         readfile($path);
     }
@@ -136,6 +154,15 @@ final class FileController extends Controller
             }
         }
         return (string) $file['href'];
+    }
+
+    /**
+     * True when this request came over HTTPS (directly or through a proxy such as Cloudflare).
+     */
+    private static function https(): bool
+    {
+        $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+        return ($https !== '' && $https !== 'off') || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
     }
 
     /**

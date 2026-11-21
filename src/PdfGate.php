@@ -12,12 +12,19 @@ namespace LegalQueryWeb;
  *   checks an answer without storing the question.
  * - Each token opens one PDF once: its nonce is recorded as a file in $usedDir, and a second use is
  *   refused. Old nonce files are removed now and then.
+ * - A right answer also gives a pass cookie for that one PDF URL for a few minutes (pass()), so the
+ *   browser's PDF viewer can download or save the PDF it shows (it fetches the URL again with GET).
  *
  * The secret is `pdf_captcha_secret` in config.local.php. Changing it ends every open question.
  */
 final class PdfGate
 {
     public const FORM_TTL = 600;
+
+    /** Seconds the pass cookie for one opened PDF lasts (owner, 2026-11-21: download from the viewer). */
+    public const PASS_TTL = 300;
+
+    public const PASS_COOKIE = 'lq_pdf_pass';
 
     public function __construct(private readonly string $secret, private readonly string $usedDir)
     {
@@ -57,6 +64,28 @@ final class PdfGate
             return false;
         }
         return $this->useUp($nonce, $now);
+    }
+
+    /**
+     * Value of the pass cookie given with a PDF after a right answer: for that one PDF URL path only,
+     * for PASS_TTL seconds. It lets the browser's PDF viewer fetch the same URL again with GET (its
+     * download / save button), which would otherwise get the question page instead of the PDF.
+     */
+    public function pass(string $path, ?int $now = null): string
+    {
+        $expires = ($now ?? time()) + self::PASS_TTL;
+        return $expires . '.' . $this->mac("p|$expires|$path");
+    }
+
+    /**
+     * True when $value is a pass for $path that has not expired.
+     */
+    public function passes(string $value, string $path, ?int $now = null): bool
+    {
+        if (!preg_match('/^(\d{1,12})\.([0-9a-f]{64})$/', $value, $m)) {
+            return false;
+        }
+        return (int) $m[1] >= ($now ?? time()) && hash_equals($this->mac("p|$m[1]|$path"), $m[2]);
     }
 
     /**
