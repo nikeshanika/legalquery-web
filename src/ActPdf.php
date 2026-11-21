@@ -15,6 +15,7 @@ namespace LegalQueryWeb;
  * - Hindi: `{act}-hindi`
  * - A second PDF that would get the same name: `-2`, `-3` … on the language word
  *   (`{act}-english-2`, `{act}-hindi-2`).
+ * - AI translation (demo, `ai_translations_dir`; owner 2026-11-21): `{act}-hindi-ai`, `{act}-bengali-ai`.
  *
  * Linked documents (rules, notifications …) keep their /files/ URLs: they have no slugs.
  */
@@ -45,8 +46,23 @@ final class ActPdf
             $name = $act['slug'] . $suffix;
             $out[] = $choice + ['name' => $name, 'href' => Url::actPdf((string) $act['jurisdiction'], $name)];
         }
+        // AI translations (Content::aiFiles, demo): after the official PDFs, marked `ai`, never official.
+        // No AI Hindi when the Act already has an official Hindi PDF (Hindi or English + Hindi; owner 2026-11-21).
+        $officialHindi = (bool) array_intersect(['hi', 'bi'], array_column($out, 'lang'));
+        foreach ($act['ai_files'] ?? [] as $file) {
+            $lang = (string) ($file['language'] ?? '');
+            if (!isset(Content::AI_LANGUAGES[$lang], self::AI_LABEL[$lang]) || ($lang === 'hi' && $officialHindi)) {
+                continue;
+            }
+            $name = $act['slug'] . '-' . Content::AI_LANGUAGES[$lang];
+            $out[] = $file + ['lang' => $lang, 'label' => self::AI_LABEL[$lang], 'ai' => true,
+                'name' => $name, 'href' => Url::actPdf((string) $act['jurisdiction'], $name)];
+        }
         return $out;
     }
+
+    /** Button text of an AI translation: the language in its own script + "AI translation". */
+    private const AI_LABEL = ['hi' => 'हिन्दी (AI अनुवाद)', 'bn' => 'বাংলা (AI অনুবাদ)'];
 
     /**
      * The Act PDF called $name (URL name without ".pdf"), or null.
@@ -74,7 +90,7 @@ final class ActPdf
     public static function candidates(string $name): array
     {
         $out = [$name];
-        foreach (['/-english-hindi(?:-\d+)?$/', '/-hindi(?:-\d+)?$/', '/-english-\d+$/'] as $suffix) {
+        foreach (['/-english-hindi(?:-\d+)?$/', '/-hindi(?:-\d+)?$/', '/-english-\d+$/', '/-(?:hindi|bengali)-ai$/'] as $suffix) {
             $act = (string) preg_replace($suffix, '', $name, 1, $replaced);
             if ($replaced && $act !== '') {
                 $out[] = $act;

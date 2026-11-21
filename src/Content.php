@@ -21,7 +21,15 @@ final class Content
     /** @var array<string, mixed> */
     private array $cache = [];
 
-    public function __construct(private readonly string $dir)
+    /** AI translations shown as extra Act PDFs (demo, owner 2026-11-21): language => URL word. */
+    public const AI_LANGUAGES = ['hi' => 'hindi-ai', 'bn' => 'bengali-ai'];
+
+    /**
+     * @param string $aiDir The indiacode project's `translations/` folder (read only), or '' = off.
+     *   An Act PDF with checksum S gets an AI translation in language L when S/L/v1/document.pdf exists.
+     * @param list<string> $aiOnly Only these source checksums (empty = every one found).
+     */
+    public function __construct(private readonly string $dir, private readonly string $aiDir = '', private readonly array $aiOnly = [])
     {
     }
 
@@ -62,7 +70,49 @@ final class Content
             return null;
         }
         $act = $this->read("$jurisdiction/acts/$slug/act.json");
-        return $act === null ? null : ['jurisdiction' => $jurisdiction] + $act;
+        if ($act === null) {
+            return null;
+        }
+        $act = ['jurisdiction' => $jurisdiction] + $act;
+        if ($this->aiDir !== '') {
+            $act['ai_files'] = $this->aiFiles($act['files'] ?? []);
+        }
+        return $act;
+    }
+
+    /**
+     * AI translations of the Act's PDFs, read from the indiacode project (not from content/): one entry
+     * per language, `{filename, language, size, sha256, path (absolute), source_sha256}`.
+     *
+     * @param array<mixed> $files act.json files
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function aiFiles(array $files): array
+    {
+        $out = [];
+        foreach ($files as $file) {
+            $source = (string) ($file['sha256'] ?? '');
+            if (!preg_match('/^[0-9a-f]{64}$/', $source) || ($this->aiOnly && !in_array($source, $this->aiOnly, true))) {
+                continue;
+            }
+            foreach (self::AI_LANGUAGES as $lang => $word) {
+                $path = "$this->aiDir/$source/$lang/v1/document.pdf";
+                if (isset($out[$lang]) || !is_file($path)) {
+                    continue;
+                }
+                $base = preg_replace('/\.pdf$/i', '', (string) ($file['filename'] ?? 'document')) ?: 'document';
+                $out[$lang] = [
+                    'filename' => "$base-$word.pdf",
+                    'language' => $lang,
+                    'size' => (int) filesize($path),
+                    'sha256' => (string) hash_file('sha256', $path),
+                    'path' => $path,
+                    'source_sha256' => $source,
+                ];
+            }
+        }
+        return array_values($out);
     }
 
     /**

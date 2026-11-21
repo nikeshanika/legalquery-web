@@ -80,6 +80,35 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## History
 
+### 2026-11-21 — No AI Hindi PDF when the Act has an official Hindi PDF (owner)
+- Owner: if the Act already has a Hindi PDF, don't show the Hindi AI translation. `ActPdf::choices()` drops the AI Hindi
+  when an official choice is Hindi or English + Hindi (`bi`); its `-hindi-ai.pdf` URL is then 404. AI Bengali is unaffected.
+- Demo now has two Acts (`config.local.php`, this machine only): Bengal Indigo Contracts Act, 1836 (official Hindi →
+  English, हिन्दी, বাংলা (AI অনুবাদ)) and Digital Personal Data Protection Act, 2023 (`a2023-22.pdf`, sha256 `dda561b9…`,
+  English only → English, हिन्दी (AI अनुवाद), বাংলা (AI অনুবাদ)). Its two PDFs (42 and 41 pages): no India Code URL or text.
+- Checks: `php -l` → no errors; `php tests/run.php` → 149 checks passed (3 new); browser: both popups show those buttons +
+  the note; POST with the question's answer → DPDP `-hindi-ai.pdf` 200 (307,934 bytes), `-bengali-ai.pdf` 200 (288,797),
+  Bengal Indigo `-bengali-ai.pdf` 200, `-hindi-ai.pdf` 404.
+
+### 2026-11-21 — Demo: AI Hindi + Bengali PDFs of one Act in the PDF popup (owner)
+- Owner asked for one example to test: the AI translations made in the indiacode project
+  (`/Users/user/Nikesh/indiacode/translations/<source sha256>/<lang>/v1/document.pdf`) as extra buttons in the Act's PDF
+  popup. Example Act: The Bengal Indigo Contracts Act, 1836 (`a1836-10.pdf`, sha256 `74e92d5f…`), which also has an
+  official Hindi PDF, so the popup shows English, हिन्दी, हिन्दी (AI अनुवाद), বাংলা (AI অনুবাদ).
+- Off by default. New settings `ai_translations_dir` ('' = off) and `ai_translations_only` (source checksums; [] = all) in
+  `config.php`; turned on only in this machine's `config.local.php` for that one checksum (remove on the server).
+- `Content::act()` adds `ai_files` (read only from that folder, never from `content/`); `ActPdf::choices()` adds them after
+  the official PDFs with `ai => true`, URLs `/acts/central/{act}-hindi-ai.pdf`, `{act}-bengali-ai.pdf`; the popup shows
+  "AI translations are not official and not yet reviewed…" and the tooltip says so; JSON-LD lists only official PDFs.
+- Checked the two PDFs: no India Code URL or text (`pdftotext`). Translation files say "AI draft; independent linguistic and
+  human legal review pending".
+- Temporary: the lasting way is the scraper's export-web copying translations into `content/` (+ `docs/CONTENT.md`); then
+  this reads `act.json` instead of the indiacode folder. **Pending owner decision** before going live.
+- Checks: `php -l` on all PHP files → no errors; `php tests/run.php` → 146 checks passed (6 new); browser on
+  `/acts/central/bengal-indigo-contracts-act-1836`: popup shows the 4 buttons and the note; POST with the PDF question's answer
+  → `-hindi-ai.pdf` 200 application/pdf 86,767 bytes, `-bengali-ai.pdf` 200 91,787 bytes, `-hindi.pdf` 200 (unchanged),
+  `-xyz-ai.pdf` 404.
+
 ### 2026-11-19 — PDF name under the thumbnail: 12 characters + "…" (owner)
 - Owner: like India Code, the name under the Act's PDF thumbnail shows at most 12 characters, then "…"
   (`custom_tariff_act,_1975.pdf` → `custom_tarif…`); the full name is in the tooltip.

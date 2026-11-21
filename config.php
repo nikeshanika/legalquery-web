@@ -21,6 +21,12 @@ $config = [
     // Signs the question and the pass cookie. Set a long random value in config.local.php on the
     // server (php -r 'echo bin2hex(random_bytes(32));'); empty = a random one in the temp folder.
     'pdf_captcha_secret' => '',
+    // AI translations of Act PDFs (demo, owner 2026-11-21): the indiacode project's translations/
+    // folder, read only. '' = off. Shown as extra buttons in the PDF popup ({act}-hindi-ai.pdf,
+    // {act}-bengali-ai.pdf), marked as AI translation. Until the scraper export carries them in content/.
+    'ai_translations_dir' => '',
+    // Only these Act PDF checksums (sha256); [] = every Act PDF that has a translation.
+    'ai_translations_only' => [],
     // Rows per page on every paged list.
     'per_page' => 20,
 ];

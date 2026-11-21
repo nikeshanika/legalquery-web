@@ -270,6 +270,34 @@ check('act pdf candidates hindi', \LegalQueryWeb\ActPdf::candidates('x-act-hindi
 $keralaAct = $content->act('central', $kerala);
 check('fixture act pdf', \LegalQueryWeb\ActPdf::find($keralaAct, $kerala)['href'] ?? null, "/acts/central/$kerala.pdf");
 check('fixture act pdf missing', \LegalQueryWeb\ActPdf::find($keralaAct, "$kerala-hindi"), null);
+
+// ---- AI translations as extra Act PDFs (demo, owner 2026-11-21) ----
+check('act pdf candidates ai', [\LegalQueryWeb\ActPdf::candidates('x-act-hindi-ai'), \LegalQueryWeb\ActPdf::candidates('x-act-bengali-ai')], [['x-act-hindi-ai', 'x-act'], ['x-act-bengali-ai', 'x-act']]);
+check('fixture no ai files when off', array_key_exists('ai_files', $keralaAct), false);
+$aiDir = sys_get_temp_dir() . '/lqw-ai-' . bin2hex(random_bytes(4));
+$src = (string) ($keralaAct['files'][0]['sha256'] ?? '');
+foreach (['hi', 'bn', 'ta'] as $l) {
+    mkdir("$aiDir/$src/$l/v1", 0777, true);
+    file_put_contents("$aiDir/$src/$l/v1/document.pdf", "%PDF-1.4 $l");
+}
+$aiAct = (new Content(__DIR__ . '/fixtures/content', $aiDir))->act('central', $kerala);
+$aiChoices = array_values(array_filter(\LegalQueryWeb\ActPdf::choices($aiAct), static fn(array $f): bool => !empty($f['ai'])));
+check('ai choices', array_map(static fn(array $f): array => [$f['lang'], $f['href'], $f['label']], $aiChoices), [
+    ['hi', "/acts/central/$kerala-hindi-ai.pdf", 'हिन्दी (AI अनुवाद)'],
+    ['bn', "/acts/central/$kerala-bengali-ai.pdf", 'বাংলা (AI অনুবাদ)'],
+]);
+$withHindi = $aiAct;
+$withHindi['files'][] = ['filename' => 'H2026-18.pdf', 'language' => 'hi', 'size' => 1, 'sha256' => str_repeat('a', 64), 'path' => 'x.pdf'];
+check('no ai hindi when official hindi', array_column(array_filter(\LegalQueryWeb\ActPdf::choices($withHindi), static fn(array $f): bool => !empty($f['ai'])), 'lang'), ['bn']);
+$withBilingual = $aiAct;
+$withBilingual['files'][] = ['filename' => 'b.pdf', 'language' => 'bi', 'size' => 1, 'sha256' => str_repeat('b', 64), 'path' => 'b.pdf'];
+check('no ai hindi when english + hindi pdf', array_column(array_filter(\LegalQueryWeb\ActPdf::choices($withBilingual), static fn(array $f): bool => !empty($f['ai'])), 'lang'), ['bn']);
+check('ai hindi url 404 when official hindi', \LegalQueryWeb\ActPdf::find($withHindi, "$kerala-hindi-ai"), null);
+check('ai choice found by name', \LegalQueryWeb\ActPdf::find($aiAct, "$kerala-bengali-ai")['path'] ?? null, "$aiDir/$src/bn/v1/document.pdf");
+check('ai choices not in json-ld', count(Seo::act($aiAct, $abs)['encoding'] ?? []), count(Seo::act($keralaAct, $abs)['encoding'] ?? []));
+$onlyOther = (new Content(__DIR__ . '/fixtures/content', $aiDir, [str_repeat('0', 64)]))->act('central', $kerala);
+check('ai only list', $onlyOther['ai_files'], []);
+array_map('unlink', glob("$aiDir/$src/*/v1/document.pdf") ?: []);
 check('tidy text', tidy_text("7 \n \n\nTHE FIRST SCHEDULE \n\n\n \n1.   Act  \n \n "), "7\n\nTHE FIRST SCHEDULE\n\n1.   Act");
 
 echo $failures ? "\n$failures of $count checks failed\n" : "$count checks passed\n";

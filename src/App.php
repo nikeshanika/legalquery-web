@@ -36,7 +36,11 @@ final class App
             if ($clean !== $path) {
                 throw new Redirect($clean . ($query !== '' ? '?' . $query : ''), 301);
             }
-            $content = new Content((string) $this->config['content_dir']);
+            $content = new Content(
+                (string) $this->config['content_dir'],
+                (string) ($this->config['ai_translations_dir'] ?? ''),
+                array_values(array_map('strval', (array) ($this->config['ai_translations_only'] ?? []))),
+            );
             Jurisdiction::register($content->jurisdictions());
             [$handler, $params] = Router::match($path) ?? throw new HttpError(404);
             if (!$content->ready() && $handler[0] !== Controller\SeoController::class) {

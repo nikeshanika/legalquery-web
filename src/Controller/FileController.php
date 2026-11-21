@@ -52,7 +52,10 @@ final class FileController extends Controller
         if (empty($file)) {
             throw new HttpError(404);
         }
-        $path = $this->content->pdfPath((string) $file['sha256']) ?? throw new HttpError(404);
+        // An AI translation's path comes from Content::aiFiles (config folder + checksum + language), not the URL.
+        $path = !empty($file['ai'])
+            ? (is_file((string) $file['path']) ? (string) $file['path'] : throw new HttpError(404))
+            : ($this->content->pdfPath((string) $file['sha256']) ?? throw new HttpError(404));
         $download = ($this->query['download'] ?? '') === '1';
         // The PDF behind a readable URL can change with a new export: revalidate, by checksum.
         $this->send($path, $name . '.pdf', $this->canonicalOf($act, $file), $download, 'public, max-age=86400', '"' . substr((string) $file['sha256'], 0, 32) . '"', (string) $file['href']);

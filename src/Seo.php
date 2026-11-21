@@ -114,6 +114,9 @@ final class Seo
         }
         $encodings = [];
         foreach (ActPdf::choices($act) as $file) {
+            if (!empty($file['ai'])) {
+                continue; // not an official text
+            }
             $encodings[] = [
                 '@type' => 'LegislationObject',
                 'encodingFormat' => 'application/pdf',
