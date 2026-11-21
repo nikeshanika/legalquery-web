@@ -6,6 +6,9 @@
  * pdf_choices() and partials/pdf-menu.php. No QR code. Not archived yet → not shown (no links to
  * India Code, owner 2026-11-03).
  *
+ * The name under the thumbnail is cut at 12 characters + "…" (like India Code; owner 2026-11-19); the full
+ * name is in the tooltip.
+ *
  * The thumbnail is a demo image for now; swap $thumb for real first-page thumbnails later.
  *
  * @var LegalQueryWeb\View $view
@@ -31,14 +34,14 @@ $title = static fn(array $f): string => $f['filename'] . (!empty($f['size']) ? '
   <figure class="pdf-thumb">
     <a href="<?= e(Url::pdf($first)) ?>" target="_blank" rel="noopener" title="<?= e($title($first)) ?>">
       <img src="<?= e($thumb) ?>" width="85" height="110" alt="">
-      <figcaption><?= e($first['filename']) ?></figcaption>
+      <figcaption><?= e(short_text($first['filename'])) ?></figcaption>
     </a>
   </figure>
 <?php else: ?>
   <details class="pdf-pick pdf-thumb">
-    <summary title="<?= count($choices) > 1 ? 'PDF available in ' . count($choices) . ' versions: choose a language' : e($title($first)) ?>">
+    <summary title="<?= e(count($choices) > 1 ? $first['filename'] . ' · available in ' . count($choices) . ' versions: choose a language' : $title($first)) ?>">
       <img src="<?= e($thumb) ?>" width="85" height="110" alt="">
-      <span class="pdf-thumb-name"><?= e($first['filename']) ?></span>
+      <span class="pdf-thumb-name"><?= e(short_text($first['filename'])) ?></span>
     </summary>
     <?= $view->partial('pdf-menu', ['choices' => $choices, 'download' => false]) ?>
   </details>

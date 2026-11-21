@@ -4,7 +4,7 @@
  * in LegalQuery colours. No outside reference links (owner 2026-11-03).
  *
  * @var LegalQueryWeb\View $view
- * @var array{acts: int, sections: int, schedules: int} $counts
+ * @var array{acts: int, state_acts: int, sections: int, schedules: int} $counts (sections, schedules: Central)
  * @var list<array<string, mixed>> $latest
  * @var array<string, int> $years
  * @var int $year_count
@@ -17,6 +17,7 @@ use LegalQueryWeb\Url;
 
 $stats = [
     ['Central Acts', $counts['acts'], 'blue', ['All Acts', Url::actList(Jurisdiction::DEFAULT)]],
+    ['State Acts', $counts['state_acts'], 'teal', ['All States', Url::states()]],
     ['Sections', $counts['sections'], 'gold', ['Search sections', Url::search()]],
     ['Schedules', $counts['schedules'], 'green', null],
     ['Years', $year_count, 'violet', null],
@@ -24,8 +25,8 @@ $stats = [
 ?>
 <section class="home-band">
   <div class="container">
-    <h1>Search Central Acts</h1>
-    <p>Central Acts of India with sections, schedules, rules, notifications and official PDFs in English and हिन्दी.</p>
+    <h1>Search Central and State Acts</h1>
+    <p>Central Acts and Acts of States and Union Territories, with sections, schedules, rules, notifications and official PDFs in English and हिन्दी.</p>
     <div class="home-search card">
       <form class="hero-search" action="/search" method="get" role="search">
         <input class="input" type="search" name="q" placeholder="Enter an Act title, number or section, e.g. arbitration, 37 of 2020" aria-label="Search Acts and sections" autofocus>

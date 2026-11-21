@@ -112,6 +112,16 @@ function tidy_text(string $text): string
  *
  * @return list<array<string, mixed>>
  */
+/**
+ * At most $max characters, then "…" (the PDF name under the Act's thumbnail, like India Code).
+ * Counts whole letters (\X), so a Devanagari vowel sign is never cut off its consonant.
+ */
+function short_text(string $text, int $max = 12): string
+{
+    preg_match_all('/\X/u', $text, $m);
+    return count($m[0]) > $max ? implode('', array_slice($m[0], 0, $max)) . '…' : $text;
+}
+
 function pdf_choices(array $files): array
 {
     $order = ['en' => 0, 'bi' => 1, 'hi' => 2];

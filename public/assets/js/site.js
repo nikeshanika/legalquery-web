@@ -49,29 +49,46 @@
     menu.style.left = left + 'px';
     menu.style.top = top + 'px';
   };
-  // With the PDF question on, the popup is a form: a new question (/pdf-question) each time it
-  // opens; a language button POSTs the answer to that PDF, which opens in a new tab. A token works
-  // once, so after a submit the popup closes and the next opening asks a new question.
-  const ask = async (form) => {
+  // With the PDF question on, the popup is a form: a language button POSTs the answer to that PDF,
+  // which opens in a new tab. A token works once. So that the reader never sees one question
+  // replaced by another while typing, a question stays in the popup until it is used (or nearly
+  // expired); the next one is fetched in the background right after a submit (and when the pointer
+  // reaches the PDF), and while one is loading the popup shows "…" with the buttons disabled.
+  const FRESH_MS = 8 * 60 * 1000; // tokens live 10 minutes on the server
+  const fetchQuestion = () => fetch('/pdf-question', { cache: 'no-store', headers: { Accept: 'application/json' } })
+    .then((res) => { if (!res.ok) throw new Error(String(res.status)); return res.json(); })
+    .then((q) => ({ ...q, at: Date.now() }));
+  let next = null; // a fetched, unused question (shared by every popup on the page)
+  const prefetch = () => {
+    if (!next) next = fetchQuestion().catch(() => { next = null; return null; });
+    return next;
+  };
+  const show = (form, q) => {
     const box = form.querySelector('.pdf-q');
-    const answer = form.elements.answer;
-    answer.value = '';
-    try {
-      const res = await fetch('/pdf-question', { cache: 'no-store', headers: { Accept: 'application/json' } });
-      if (!res.ok) throw new Error(String(res.status));
-      const q = await res.json();
-      form.querySelector('[data-q]').textContent = q.a + ' + ' + q.b;
-      form.elements.token.value = q.token;
-      answer.required = true;
-      box.hidden = false;
-      place(form.closest('details.pdf-pick'));
-      answer.focus();
-    } catch (e) {
-      // No question: the buttons POST without a token and the PDF URL asks the question as a page.
-      box.hidden = true;
-      answer.required = false;
-      form.elements.token.value = '';
-    }
+    const buttons = form.querySelectorAll('button[type="submit"]');
+    form.dataset.at = q ? String(q.at) : '';
+    form.elements.token.value = q ? q.token : '';
+    form.elements.answer.value = '';
+    form.elements.answer.required = !!q;
+    form.querySelector('[data-q]').textContent = q ? q.a + ' + ' + q.b : '…';
+    buttons.forEach((b) => { b.disabled = false; });
+    // No question (fetch failed): the buttons POST without a token and the PDF URL asks it as a page.
+    box.hidden = !q;
+  };
+  const ask = async (form) => {
+    const fresh = form.elements.token.value && Date.now() - Number(form.dataset.at || 0) < FRESH_MS;
+    if (fresh) return; // the unused question stays as it is
+    const box = form.querySelector('.pdf-q');
+    form.querySelector('[data-q]').textContent = '…';
+    form.elements.answer.value = '';
+    form.querySelectorAll('button[type="submit"]').forEach((b) => { b.disabled = true; });
+    box.hidden = false;
+    let q = await prefetch();
+    next = null;
+    if (q && Date.now() - q.at >= FRESH_MS) q = await fetchQuestion().catch(() => null);
+    show(form, q);
+    const picker = form.closest('details.pdf-pick');
+    if (picker.open) { place(picker); if (q) form.elements.answer.focus(); }
   };
   pickers.forEach((picker) => {
     const form = picker.querySelector('form.pdf-menu');
@@ -79,10 +96,26 @@
       if (!picker.open) return;
       closeAll(picker);
       place(picker);
-      if (form) ask(form);
+      if (form) {
+        ask(form);
+        if (!form.querySelector('.pdf-q').hidden && form.elements.token.value) form.elements.answer.focus();
+      }
     });
     picker.querySelectorAll('.pdf-menu a').forEach((a) => a.addEventListener('click', () => { picker.open = false; }));
-    if (form) form.addEventListener('submit', () => { setTimeout(() => { picker.open = false; }, 0); });
+    if (form) {
+      const summary = picker.querySelector('summary');
+      summary.addEventListener('pointerenter', prefetch, { once: true });
+      summary.addEventListener('focus', prefetch, { once: true });
+      form.addEventListener('submit', () => {
+        // The browser has read the form; this token is now used.
+        setTimeout(() => {
+          picker.open = false;
+          form.elements.token.value = '';
+          form.dataset.at = '';
+          prefetch();
+        }, 0);
+      });
+    }
   });
   // Typing the answer (a phone keyboard scrolls and resizes the page) keeps the popup open.
   const typing = () => document.activeElement && document.activeElement.closest && document.activeElement.closest('.pdf-menu');

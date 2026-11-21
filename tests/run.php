@@ -215,6 +215,7 @@ check('website search', Seo::website('LQ', $abs)['potentialAction']['target']['u
 // ---- helpers ----
 check('date', format_date('2026-04-09'), '9 Apr 2026');
 check('date passthrough', format_date('N/A'), 'N/A');
+check('date year only (amendments)', format_date('2025'), '2025');
 check('size', format_size(306176), '299 KB');
 check('label section', provision_label(['number' => '2A']), 'Section 2A');
 check('label schedule', provision_label(['kind' => 'SCHEDULE', 'slug' => 'first-schedule']), 'First Schedule');
@@ -244,6 +245,7 @@ check('pdf gate right answer', $gate->check($q['token'], " $right ", 1000), true
 check('pdf gate token used once', $gate->check($q['token'], $right, 1000), false);
 array_map('unlink', glob("$usedDir/*") ?: []);
 rmdir($usedDir);
+check('short text', [short_text('A2026-18.pdf'), short_text('a1972-28_hindi.pdf'), short_text('हिन्दी-अधिनियम-२०२६.pdf')], ['A2026-18.pdf', 'a1972-28_hin…', 'हिन्दी-अधिनियम-२०…']);
 check('pdf question route', route('/pdf-question'), 'FileController::question []');
 
 Jurisdiction::register(['puducherry' => 'Puducherry']);

@@ -91,7 +91,7 @@ body { overflow-x:clip; }
 .hero-search .btn { padding:12px 28px; font-size:15px; }
 .search-form { padding:14px; margin-bottom:16px; max-width:none; }
 .site-tag { font-size:15px; font-weight:600; color:var(--gold-700); margin-left:2px; }
-.stat-cards { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:20px; margin:28px 0; }
+.stat-cards { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:20px; margin:28px 0; }
 .stat-card { padding:22px 18px; text-align:center; display:flex; flex-direction:column; gap:4px; border-top:4px solid var(--primary-blue); }
 .stat-card strong { font-size:34px; line-height:1.1; color:var(--primary-blue); }
 .stat-card span { font-weight:600; color:var(--text-gray); }
@@ -99,6 +99,7 @@ body { overflow-x:clip; }
 .stat-card.gold { border-top-color:var(--primary-gold); } .stat-card.gold strong { color:var(--gold-700); }
 .stat-card.green { border-top-color:var(--green-700); } .stat-card.green strong { color:var(--green-700); }
 .stat-card.violet { border-top-color:var(--violet-700); } .stat-card.violet strong { color:var(--violet-700); }
+.stat-card.teal { border-top-color:#0e7490; } .stat-card.teal strong { color:#0e7490; }
 .home-grid { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:20px; align-items:start; }
 .panel-card { overflow:hidden; display:flex; flex-direction:column; }
 .panel-head { margin:0; padding:14px 18px; font-size:17px; color:#fff; background:var(--primary-blue); }
@@ -192,6 +193,7 @@ body { overflow-x:clip; }
 .pdf-menu-title { margin:0 0 2px; font-size:12px; font-weight:600; color:var(--text-gray); text-transform:uppercase; letter-spacing:.04em; }
 .pdf-menu-row { display:flex; gap:6px; }
 button.view { font-family:inherit; line-height:inherit; cursor:pointer; }
+button.view:disabled { opacity:.5; cursor:wait; }
 .pdf-q label { display:flex; align-items:center; gap:8px; margin:0 0 4px; font-size:13.5px; font-weight:600; white-space:nowrap; }
 .pdf-q .input { width:64px; padding:5px 8px; font-size:16px; }
 .pdf-menu-row .view:first-child { flex:1; text-align:center; font-size:13.5px; padding:6px 10px; }
@@ -310,6 +312,7 @@ button.view { font-family:inherit; line-height:inherit; cursor:pointer; }
 @media (max-width: 900px) {
   .list-layout, .home-grid { grid-template-columns:1fr; }
   .stat-cards { grid-template-columns:1fr 1fr; }
+  .stat-card:last-child:nth-child(odd) { grid-column:1 / -1; }
   .filter-card { position:static; }
   .act-row { flex-direction:column; gap:10px; }
   .foot-grid { grid-template-columns:1fr 1fr; }

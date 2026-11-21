@@ -52,7 +52,7 @@ $image = str_starts_with($image, 'http') ? $image : $view->asset($image);
   <link rel="icon" href="<?= e($view->asset('/assets/img/favicon.svg')) ?>" type="image/svg+xml">
   <link rel="icon" href="<?= e($view->asset('/favicon.png')) ?>" type="image/png" sizes="48x48">
   <link rel="apple-touch-icon" href="<?= e($view->asset('/assets/img/apple-touch-icon.png')) ?>">
-  <link rel="stylesheet" href="<?= e($view->asset('/assets/css/site.css?v=16')) ?>">
+  <link rel="stylesheet" href="<?= e($view->asset('/assets/css/site.css?v=18')) ?>">
 <?php foreach ($meta['schema'] as $block): ?>
   <?= Seo::script($block) ?>
 <?php endforeach; ?>
@@ -63,7 +63,7 @@ $image = str_starts_with($image, 'http') ? $image : $view->asset($image);
 <?= $content ?>
 </main>
 <?= $view->partial('footer') ?>
-<script src="<?= e($view->asset('/assets/js/site.js?v=5')) ?>" defer></script>
+<script src="<?= e($view->asset('/assets/js/site.js?v=6')) ?>" defer></script>
 <script src="/lib/icc-common.js?v=1.3.0"></script><script>ICC.start('act');</script>
 </body>
 </html>

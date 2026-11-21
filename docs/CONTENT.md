@@ -121,7 +121,8 @@ section or schedule (owner, 2026-11-03; old URLs 301 to the tab, see `URLS.md`).
 Code collection (`RULE`, `NOTIFICATION`, `REGULATION`, `ORDER`, `ORDINANCE`, `STATUTE`, `CIRCULAR`,
 `APPENDIX`, `ACT_AMENDMENT`).
 
-Document: `{uuid, collection, title, date, state, files}`.
+Document: `{uuid, collection, title, date, state, files}`. `date`: ISO date, or only the year (`YYYY`)
+when India Code gives just that (every amendment: the amending Act's year), or ''.
 
 ## File entry
 

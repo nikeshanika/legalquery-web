@@ -80,6 +80,13 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## History
 
+### 2026-11-19 — PDF name under the thumbnail: 12 characters + "…" (owner)
+- Owner: like India Code, the name under the Act's PDF thumbnail shows at most 12 characters, then "…"
+  (`custom_tariff_act,_1975.pdf` → `custom_tarif…`); the full name is in the tooltip.
+- `short_text()` in `src/helpers.php` (counts whole letters, so Devanagari vowel signs stay with their consonant);
+  used in `partials/act-pdfs.php` (link and popup thumbnail).
+- Checks: `php tests/run.php` → 139 checks passed; browser: `/acts/central/customs-tariff-act-1975` shows `custom_tarif…`.
+
 ### 2026-11-19 — Search: Central / State chip on each result
 - Owner asked why "The Epidemic Diseases Act, 1897" gives 2 results: they are two India Code records, Central (12
   sections) and Puducherry (1 section, Regulations; not linked as a copy). Search covers every jurisdiction, but the row
