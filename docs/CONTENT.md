@@ -126,8 +126,15 @@ when India Code gives just that (every amendment: the amending Act's year), or '
 
 ## File entry
 
-`{filename, language: en|hi|bi|unknown, size, sha256, path}` when the PDF was exported; `path` is
-relative to `content/` (e.g. `central/acts/x/pdf/rules/G-123.pdf`). Or `{filename, language, size}`
+`{filename, language, size, sha256, path}` when the PDF was exported; `path` is
+relative to `content/` (e.g. `central/acts/x/pdf/rules/G-123.pdf`). `language` is `en`, `hi`, `bi`
+(English + Hindi in one PDF), a State language (since 2026-11-23: `as` Assamese, `bn` Bengali, `gu`
+Gujarati, `kn` Kannada, `ml` Malayalam, `or` Odia, `pa` Punjabi, `ta` Tamil, `te` Telugu) or
+`unknown`. India Code tags a State-language PDF English (the Act's metadata) or not at all, so the
+export finds it from the PDF's India Code TEXT file: its script (Gujarati, Malayalam … letters), or,
+for an Act PDF next to an English one in a State with its own language, text that is not English
+(an old non-Unicode font; `src/web_export.py` `_pdf_probe` in the scraper). The site names each
+language in its own script (`PDF_LANGUAGES` in `src/helpers.php`). Or `{filename, language, size}`
 when the scraper has not downloaded it yet: no link. `remote_url` is never an India Code URL (since
 2026-11-03), so in practice it is absent.
 

@@ -10,7 +10,8 @@ use LegalQueryWeb\Url;
 
 /**
  * /states: the States and Union Territories whose Acts are on the site (every exported
- * jurisdiction except central), A to Z, with their Act and section counts from manifest.json.
+ * jurisdiction except central), States first and then Union Territories (like India Code), each
+ * A to Z, with their Act and section counts from manifest.json.
  * Their Acts are shown as India Code lists them (owner, 2026-11-17).
  */
 final class StatesController extends Controller
@@ -34,7 +35,11 @@ final class StatesController extends Controller
             throw new HttpError(404);
         }
         usort($states, static fn(array $a, array $b): int => strcasecmp($a['name'], $b['name']));
-        $this->view->page('states', ['states' => $states], [
+        $groups = ['States' => [], 'Union Territories' => []];
+        foreach ($states as $state) {
+            $groups[Jurisdiction::isUnionTerritory($state['code']) ? 'Union Territories' : 'States'][] = $state;
+        }
+        $this->view->page('states', ['groups' => array_filter($groups)], [
             'title' => 'Acts of the States and Union Territories of India',
             'description' => 'State and Union Territory Acts of India as listed on India Code, with sections '
                 . 'where available, rules, notifications and official PDFs.',

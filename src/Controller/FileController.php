@@ -42,11 +42,17 @@ final class FileController extends Controller
      */
     public function actPdf(string $jurisdiction, string $name): void
     {
+        $download = ($this->query['download'] ?? '') === '1';
         foreach (ActPdf::candidates($name) as $slug) {
             $act = $this->content->act($jurisdiction, $slug);
             $file = $act ? ActPdf::find($act, $name) : null;
             if ($file) {
                 break;
+            }
+            // A State-language PDF published under its old name (`{act}-english-2`): 301 to its own.
+            $moved = $act ? ActPdf::moved($act, $name) : null;
+            if ($moved) {
+                throw new Redirect(Url::pdf($moved, $download), 301);
             }
         }
         if (empty($file)) {
@@ -56,7 +62,6 @@ final class FileController extends Controller
         $path = !empty($file['ai'])
             ? (is_file((string) $file['path']) ? (string) $file['path'] : throw new HttpError(404))
             : ($this->content->pdfPath((string) $file['sha256']) ?? throw new HttpError(404));
-        $download = ($this->query['download'] ?? '') === '1';
         // The PDF behind a readable URL can change with a new export: revalidate, by checksum.
         $this->send($path, $name . '.pdf', $this->canonicalOf($act, $file), $download, 'public, max-age=86400', '"' . substr((string) $file['sha256'], 0, 32) . '"', (string) $file['href']);
     }

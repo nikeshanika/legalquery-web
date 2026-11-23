@@ -80,6 +80,25 @@ Read *Current state* and *Pending* first. Add an entry at the top of *History* a
 
 ## History
 
+### 2026-11-23 — /states: States first, then Union Territories; slugs for Gujarat, Nagaland, Andhra Pradesh
+- `/states` lists two groups like India Code, each A to Z with a count: States, then Union Territories
+  (`Jurisdiction::isUnionTerritory()`, list of the 8 UTs; owner, 2026-11-23). New CSS `.jur-group`, `.jur-divider`;
+  stylesheet `?v=20`.
+- `content/slugs.json`: 749 new slugs from the exports up to Andhra Pradesh (3,597 Acts); 0 changed or removed
+  (compared as JSON with the last commit).
+- Checks: `php tests/run.php` → 145 passed (new: union territories); `php -l` all ok; `/states` → 200 with
+  "States 14" and "Union Territories 7".
+
+### 2026-11-21 — dev.sh: export also loads PostgreSQL (legalquery-ai)
+- Owner: after `export-web` and after translating in the indiacode project, the data should reach PostgreSQL.
+- `dev.sh export` and `dev.sh` now run, after the export, `lqai load` (content/ → chunks) and `lqai load-translations`
+  (indiacode AI translations) of `../legalquery-ai` (`LQAI_DIR`, `TRANSLATIONS_DIR`); new `./dev.sh load` runs only
+  those. Not set up / no translations folder → a note, no failure; `LQAI_SKIP_LOAD=1` skips. In `./dev.sh` a failed
+  load warns and still serves. The site does not read PostgreSQL; nothing else here changed.
+- Checks: `bash -n dev.sh` → ok; `./dev.sh load` → 3,095 Acts unchanged, 2,135 translations unchanged, 0 written,
+  3.6 s; `LQAI_SKIP_LOAD=1`, `LQAI_DIR=/nonexistent`, `TRANSLATIONS_DIR=/nonexistent` → skip notes; `./dev.sh bogus` →
+  usage, exit 2. The scraper export itself was not run.
+
 ### 2026-11-21 — No AI Hindi PDF when the Act has an official Hindi PDF (owner)
 - Owner: if the Act already has a Hindi PDF, don't show the Hindi AI translation. `ActPdf::choices()` drops the AI Hindi
   when an official choice is Hindi or English + Hindi (`bi`); its `-hindi-ai.pdf` URL is then 404. AI Bengali is unaffected.

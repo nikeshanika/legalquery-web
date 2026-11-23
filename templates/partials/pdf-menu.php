@@ -17,6 +17,8 @@ use LegalQueryWeb\Url;
 
 $captcha = !empty($view->config['pdf_captcha']);
 $several = count($choices) > 1;
+// lang="hi", lang="gu" …: a button named in that language (not for English or English + हिन्दी).
+$langOf = static fn(array $f): string => in_array($f['lang'], ['en', 'bi', 'unknown'], true) ? '' : ' lang="' . e($f['lang']) . '"';
 $tip = static fn(array $f): string => (!empty($f['ai']) ? 'AI translation, not official · ' : '') . $f['filename'] . (!empty($f['size']) ? ' · ' . format_size($f['size']) : '');
 // AI translations (demo, owner 2026-11-21) are not the official text: say so under the buttons.
 $aiNote = in_array(true, array_map(static fn(array $f): bool => !empty($f['ai']), $choices), true)
@@ -34,7 +36,7 @@ $aiNote = in_array(true, array_map(static fn(array $f): bool => !empty($f['ai'])
   </div>
 <?php foreach ($choices as $file): ?>
   <div class="pdf-menu-row">
-    <button class="view" type="submit" formaction="<?= e(Url::pdf($file)) ?>" title="<?= e($tip($file)) ?>"<?= in_array($file['lang'], ['hi', 'bn'], true) ? ' lang="' . e($file['lang']) . '"' : '' ?>><?= e($several ? $file['label'] : 'Open PDF') ?></button>
+    <button class="view" type="submit" formaction="<?= e(Url::pdf($file)) ?>" title="<?= e($tip($file)) ?>"<?= $langOf($file) ?>><?= e($several ? $file['label'] : 'Open PDF') ?></button>
 <?php if ($download): ?>
     <button class="view" type="submit" formaction="<?= e(Url::pdf($file, true)) ?>" formtarget="_self" title="Download <?= e($file['filename']) ?>" aria-label="Download <?= e($file['label']) ?> PDF">⤓</button>
 <?php endif; ?>
@@ -47,7 +49,7 @@ $aiNote = in_array(true, array_map(static fn(array $f): bool => !empty($f['ai'])
   <p class="pdf-menu-title">Choose language</p>
 <?php foreach ($choices as $file): ?>
   <div class="pdf-menu-row">
-    <a class="view" href="<?= e(Url::pdf($file)) ?>" target="_blank" rel="noopener" title="<?= e($tip($file)) ?>"<?= in_array($file['lang'], ['hi', 'bn'], true) ? ' lang="' . e($file['lang']) . '"' : '' ?>><?= e($file['label']) ?></a>
+    <a class="view" href="<?= e(Url::pdf($file)) ?>" target="_blank" rel="noopener" title="<?= e($tip($file)) ?>"<?= $langOf($file) ?>><?= e($file['label']) ?></a>
 <?php if ($download): ?>
     <a class="view" href="<?= e(Url::pdf($file, true)) ?>" title="Download <?= e($file['filename']) ?>" aria-label="Download <?= e($file['label']) ?> PDF">⤓</a>
 <?php endif; ?>
