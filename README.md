@@ -13,11 +13,17 @@ indiacode-scraper (SQLite + PDFs)  --export-web-->  legalquery-web/content/ (JSO
 Needs PHP 8.1+ (`brew install php`) and the scraper project next to this one.
 
 ```bash
-./dev.sh            # export from the scraper, then serve http://localhost:8800
-./dev.sh export     # only refresh content/
+./dev.sh            # export from the scraper, load PostgreSQL, then serve http://localhost:8800
+./dev.sh export     # refresh content/, then load PostgreSQL
+./dev.sh load       # only the PostgreSQL load (after a translation batch in ../indiacode)
 ./dev.sh serve      # only serve
 HOST=0.0.0.0 ./dev.sh serve   # also reachable from the LAN, e.g. http://192.168.1.124:8800
 ```
+
+"Load PostgreSQL" = `lqai load` (content/ → chunks) and `lqai load-translations` (the indiacode project's
+AI translations) of the separate `../legalquery-ai` project. Only changed Acts and translations are
+written. Skipped with a note when `../legalquery-ai` is not set up; `LQAI_SKIP_LOAD=1` skips it. The site
+itself never reads PostgreSQL.
 
 Example page: http://localhost:8800/acts/central/kerala-alteration-of-name-act-2026
 

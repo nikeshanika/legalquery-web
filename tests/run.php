@@ -117,6 +117,7 @@ check('registered jurisdictions', [Jurisdiction::codes(), Jurisdiction::name('ce
     [['central', 'kerala', 'andaman-and-nicobar-islands'], 'Central Acts', 'Kerala Acts', 'Andaman and Nicobar Islands', false]);
 check('state act route', Router::match('/acts/kerala/some-act-1990')[1]['jurisdiction'] ?? null, 'kerala');
 check('state list route', Router::match('/acts/andaman-and-nicobar-islands/page/2')[1]['jurisdiction'] ?? null, 'andaman-and-nicobar-islands');
+check('union territories', array_map([Jurisdiction::class, 'isUnionTerritory'], ['delhi', 'ladakh', 'puducherry', 'kerala', 'goa', 'central']), [true, true, true, false, false, false]);
 Jurisdiction::register([]);
 check('unregistered state has no route', Router::match('/acts/kerala/some-act-1990'), null);
 check('section url', Url::provision('central', 'companies-act-2013', 'section-2a'), '/acts/central/companies-act-2013#section-2a');

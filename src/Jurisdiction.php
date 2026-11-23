@@ -22,6 +22,21 @@ final class Jurisdiction
         'central' => ['Central Acts', 'Central (Parliament of India)'],
     ];
 
+    /**
+     * The Union Territories of India (codes as the export writes them). Every other exported
+     * jurisdiction except central is a State. /states lists them apart, like India Code (owner, 2026-11-23).
+     */
+    private const UNION_TERRITORIES = [
+        'andaman-and-nicobar-islands',
+        'chandigarh',
+        'dadra-and-nagar-haveli-and-daman-and-diu',
+        'delhi',
+        'jammu-and-kashmir',
+        'ladakh',
+        'lakshadweep',
+        'puducherry',
+    ];
+
     /** @var array<string, array{0: string, 1: string}> Exported States/UTs (register()). */
     private static array $more = [];
 
@@ -47,6 +62,11 @@ final class Jurisdiction
     public static function codes(): array
     {
         return array_keys(self::ALL + self::$more);
+    }
+
+    public static function isUnionTerritory(string $code): bool
+    {
+        return in_array($code, self::UNION_TERRITORIES, true);
     }
 
     public static function exists(string $code): bool
