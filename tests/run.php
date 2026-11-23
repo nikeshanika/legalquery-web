@@ -233,6 +233,7 @@ check('pdf choices same file once', $labels([$pdf('en', true, 'a.pdf', 's1'), $p
 check('pdf choices H name is Hindi', $labels([$pdf('en', true, 'H2018-17.pdf'), $pdf('en', true, 'A2018-17.pdf')]), ['English', 'हिन्दी']);
 check('pdf choices numbered', $labels([$pdf('en', true, '197228.pdf'), $pdf('en', true, 'a1972-28.pdf'), $pdf('hi', true, 'hH1972-28.pdf')]), ['English', 'English 2', 'हिन्दी']);
 check('pdf choices lang', array_column(pdf_choices([$pdf('en', true, 'h201949.pdf')]), 'lang'), ['hi']);
+check('pdf choices state languages', $labels([$pdf('unknown'), $pdf('ml'), $pdf('gu'), $pdf('en'), $pdf('xx')]), ['English', 'ગુજરાતી', 'മലയാളം', 'PDF', 'PDF 2']);
 // PDF question (PdfGate): signed token, in time, one use only.
 $usedDir = sys_get_temp_dir() . '/lqw-test-used-' . bin2hex(random_bytes(4));
 $gate = new \LegalQueryWeb\PdfGate(str_repeat('k', 32), $usedDir);
@@ -272,9 +273,15 @@ check('act pdf names', $names([$pdf('hi', true, 'hH1972-28.pdf'), $pdf('en', tru
 check('act pdf names bilingual and unknown', $names([$pdf('bi'), $pdf('unknown'), $pdf('hi'), $pdf('hi', true, 'h2.pdf')]), ['/acts/central/x-act-1972-english-hindi.pdf', '/acts/central/x-act-1972-hindi.pdf', '/acts/central/x-act-1972-hindi-2.pdf', '/acts/central/x-act-1972.pdf']);
 check('act pdf names only hindi', $names([$pdf('hi')]), ['/acts/central/x-act-1972-hindi.pdf']);
 check('act pdf names not archived', $names([$pdf('en', false)]), []);
+check('act pdf names state language', $names([$pdf('gu', true, 'act_no._26_of_2019.pdf'), $pdf('en', true, 'msmeact19.pdf')]), ['/acts/central/x-act-1972.pdf', '/acts/central/x-act-1972-gujarati.pdf']);
+$gujAct = ['jurisdiction' => 'gujarat', 'slug' => 'x-act-2019', 'files' => [$pdf('en', true, 'a.pdf'), $pdf('hi'), $pdf('gu', true, 'g.pdf')]];
+check('act pdf moved english-2', \LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019-english-2')['href'] ?? null, '/acts/gujarat/x-act-2019-gujarati.pdf');
+check('act pdf moved not old', [\LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019'), \LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019-hindi'), \LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019-english-3')], [null, null, null]);
+check('act pdf moved alone', \LegalQueryWeb\ActPdf::moved(['jurisdiction' => 'kerala', 'slug' => 'y-act', 'files' => [$pdf('ml')]], 'y-act')['href'] ?? null, '/acts/kerala/y-act-malayalam.pdf');
 check('act pdf candidates', \LegalQueryWeb\ActPdf::candidates('hindi-act-1962-english-hindi-2'), ['hindi-act-1962-english-hindi-2', 'hindi-act-1962', 'hindi-act-1962-english']);
 check('act pdf candidates main', \LegalQueryWeb\ActPdf::candidates('hindi-sahitya-sammelan-act-1962'), ['hindi-sahitya-sammelan-act-1962']);
 check('act pdf candidates hindi', \LegalQueryWeb\ActPdf::candidates('x-act-hindi'), ['x-act-hindi', 'x-act']);
+check('act pdf candidates state language', [\LegalQueryWeb\ActPdf::candidates('x-act-gujarati'), \LegalQueryWeb\ActPdf::candidates('x-act-telugu-2')], [['x-act-gujarati', 'x-act'], ['x-act-telugu-2', 'x-act']]);
 $keralaAct = $content->act('central', $kerala);
 check('fixture act pdf', \LegalQueryWeb\ActPdf::find($keralaAct, $kerala)['href'] ?? null, "/acts/central/$kerala.pdf");
 check('fixture act pdf missing', \LegalQueryWeb\ActPdf::find($keralaAct, "$kerala-hindi"), null);

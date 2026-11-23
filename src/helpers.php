@@ -99,20 +99,6 @@ function tidy_text(string $text): string
 }
 
 /**
- * Every archived PDF of a document or Act, one choice per file, for the language buttons (owner,
- * 2026-11-18: show all available languages; replaces "English only", 2026-11-04). Order: English,
- * Bilingual, Hindi, other. The same file (sha256) is listed once; files not archived yet are skipped.
- *
- * Each choice is the file entry plus `lang` (en|bi|hi|unknown) and `label` ("English", "हिन्दी",
- * "English + हिन्दी", "PDF"). A file the export labels `en` whose India Code name starts with H and a
- * digit (H2018-17.pdf, h201949.pdf) is a Hindi PDF mislabelled by the export, shown as Hindi until the
- * export fixes it. Two files with the same label get "2", "3" after it.
- *
- * @param list<array<string, mixed>> $files
- *
- * @return list<array<string, mixed>>
- */
-/**
  * At most $max characters, then "…" (the PDF name under the Act's thumbnail, like India Code).
  * Counts whole letters (\X), so a Devanagari vowel sign is never cut off its consonant.
  */
@@ -122,10 +108,43 @@ function short_text(string $text, int $max = 12): string
     return count($m[0]) > $max ? implode('', array_slice($m[0], 0, $max)) . '…' : $text;
 }
 
+/**
+ * PDF languages: code => [name, URL word] (ActPdf). Order = button order.
+ */
+const PDF_LANGUAGES = [
+    'en' => ['English', 'english'],
+    'bi' => ['English + हिन्दी', 'english-hindi'],
+    'hi' => ['हिन्दी', 'hindi'],
+    'as' => ['অসমীয়া', 'assamese'],
+    'bn' => ['বাংলা', 'bengali'],
+    'gu' => ['ગુજરાતી', 'gujarati'],
+    'kn' => ['ಕನ್ನಡ', 'kannada'],
+    'ml' => ['മലയാളം', 'malayalam'],
+    'or' => ['ଓଡ଼ିଆ', 'odia'],
+    'pa' => ['ਪੰਜਾਬੀ', 'punjabi'],
+    'ta' => ['தமிழ்', 'tamil'],
+    'te' => ['తెలుగు', 'telugu'],
+];
+
+/**
+ * Every archived PDF of a document or Act, one choice per file, for the language buttons (owner,
+ * 2026-11-18: show all available languages; replaces "English only", 2026-11-04). Order: English,
+ * Bilingual, Hindi, the State languages (Gujarati, Malayalam … owner, 2026-11-23), unknown. The same file (sha256) is listed once; files not archived yet are skipped.
+ *
+ * Each choice is the file entry plus `lang` (en|bi|hi, a State language code from PDF_LANGUAGES, or
+ * unknown) and `label` ("English", "हिन्दी", "English + हिन्दी", "ગુજરાતી" …, "PDF"): each language
+ * by its own name, as India Code names Hindi. A file the export labels `en` whose India Code name starts with H and a
+ * digit (H2018-17.pdf, h201949.pdf) is a Hindi PDF mislabelled by the export, shown as Hindi until the
+ * export fixes it. Two files with the same label get "2", "3" after it.
+ *
+ * @param list<array<string, mixed>> $files
+ *
+ * @return list<array<string, mixed>>
+ */
 function pdf_choices(array $files): array
 {
-    $order = ['en' => 0, 'bi' => 1, 'hi' => 2];
-    $names = ['en' => 'English', 'bi' => 'English + हिन्दी', 'hi' => 'हिन्दी'];
+    $order = array_flip(array_keys(PDF_LANGUAGES));
+    $names = array_map(static fn(array $l): string => $l[0], PDF_LANGUAGES);
     $seen = [];
     $choices = [];
     foreach ($files as $i => $file) {
@@ -139,7 +158,7 @@ function pdf_choices(array $files): array
             $lang = 'hi';
         }
         $lang = isset($order[$lang]) ? $lang : 'unknown';
-        $choices[] = [$order[$lang] ?? 3, $i, $file + ['lang' => $lang, 'label' => $names[$lang] ?? 'PDF']];
+        $choices[] = [$order[$lang] ?? count($order), $i, $file + ['lang' => $lang, 'label' => $names[$lang] ?? 'PDF']];
     }
     usort($choices, static fn(array $a, array $b): int => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
     $choices = array_column($choices, 2);

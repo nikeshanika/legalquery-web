@@ -118,7 +118,7 @@ final class Seo
                 '@type' => 'LegislationObject',
                 'encodingFormat' => 'application/pdf',
                 'contentUrl' => $absolute(Url::pdf($file)),
-                'inLanguage' => ['hi' => 'hi', 'bi' => ['en', 'hi']][$file['lang']] ?? 'en',
+                'inLanguage' => ['bi' => ['en', 'hi'], 'unknown' => 'en'][$file['lang']] ?? $file['lang'],
             ];
         }
         if ($encodings) {
