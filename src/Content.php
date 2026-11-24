@@ -83,7 +83,13 @@ final class Content
     }
 
     /**
-     * The documents of one linked-document tab (rules, notifications, ...), newest first.
+     * The documents of one linked-document tab (rules, notifications, ...), newest first. Each file with
+     * a `path` gets `f` and `href`, its /pdf URL (Url::linkedPdf; owner, 2026-11-24).
+     *
+     * `f` is the file's name on disk without ".pdf", lowercased (the export keeps names unique ignoring
+     * case within a folder). A tab can list files from other folders; when two different files would get
+     * the same `f`, the later one (in the tab's order) gets its folder in front (`rules-…`, `pdf-…`), and
+     * `-2`, `-3` … if still taken. The tab's order is the export's, so `f` stays the same between requests.
      *
      * @return list<array<string, mixed>>
      */
@@ -92,7 +98,76 @@ final class Content
         if (!Jurisdiction::exists($jurisdiction) || !preg_match(self::SLUG, $act) || !preg_match(self::SLUG, $tab)) {
             return [];
         }
-        return $this->read("$jurisdiction/acts/$act/$tab.json")['items'] ?? [];
+        $key = "tab:$jurisdiction/$act/$tab";
+        if (array_key_exists($key, $this->cache)) {
+            return $this->cache[$key];
+        }
+        $items = $this->read("$jurisdiction/acts/$act/$tab.json")['items'] ?? [];
+        $byName = [];
+        foreach ($items as &$item) {
+            if (!is_array($item['files'] ?? null)) {
+                continue;
+            }
+            foreach ($item['files'] as &$file) {
+                $path = (string) ($file['path'] ?? '');
+                if (!preg_match('#/pdf/(?:([^/]+)/)?([A-Za-z0-9._-]+)\.pdf$#i', $path, $m)) {
+                    continue;
+                }
+                $f = strtolower($m[2]);
+                if (isset($byName[$f]) && $byName[$f] !== $path) {
+                    $f = strtolower(($m[1] !== '' ? $m[1] : 'pdf') . '-' . $m[2]);
+                    for ($n = 2, $base = $f; isset($byName[$f]) && $byName[$f] !== $path; $n++) {
+                        $f = "$base-$n";
+                    }
+                }
+                $byName[$f] = $path;
+                $file['f'] = $f;
+                $file['href'] = Url::linkedPdf($jurisdiction, $act, $tab, $f);
+            }
+            unset($file);
+        }
+        unset($item);
+        return $this->cache[$key] = $items;
+    }
+
+    /**
+     * The file of a linked-document tab whose `f` is $f (see tab()), or null.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function linkedFile(string $jurisdiction, string $act, string $tab, string $f): ?array
+    {
+        foreach ($this->tab($jurisdiction, $act, $tab) as $item) {
+            foreach ($item['files'] ?? [] as $file) {
+                if (($file['f'] ?? null) === $f) {
+                    return $file + ['title' => (string) ($item['title'] ?? ''), 'tab' => $tab];
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The /pdf URL of the linked document with checksum $sha256 in one of the Act's tabs, or null.
+     *
+     * @param array<string, mixed> $act act.json (with `jurisdiction`)
+     * @param list<string> $tabs the linked-document tabs to look in, in order
+     */
+    public function linkedHref(array $act, string $sha256, array $tabs): ?string
+    {
+        foreach ($tabs as $tab) {
+            if (empty($act['tabs'][$tab])) {
+                continue;
+            }
+            foreach ($this->tab((string) $act['jurisdiction'], (string) $act['slug'], $tab) as $item) {
+                foreach ($item['files'] ?? [] as $file) {
+                    if (($file['sha256'] ?? null) === $sha256 && isset($file['href'])) {
+                        return (string) $file['href'];
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**

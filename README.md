@@ -18,6 +18,7 @@ Needs PHP 8.1+ (`brew install php`) and the scraper project next to this one.
 ./dev.sh load       # only the PostgreSQL load (after a translation batch in ../indiacode)
 ./dev.sh serve      # only serve
 HOST=0.0.0.0 ./dev.sh serve   # also reachable from the LAN, e.g. http://192.168.1.124:8800
+./dev.sh tunnel     # serve on the public dev tunnel legalquery-web (same URL every day, = SITE_URL)
 ```
 
 "Load PostgreSQL" = `lqai load` (content/ → chunks) and `lqai load-translations` (the indiacode project's

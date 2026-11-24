@@ -80,23 +80,52 @@ final class Url
     }
 
     /**
-     * An Act's own PDF by its readable name (ActPdf): /acts/central/companies-act-2013.pdf,
-     * …-hindi.pdf.
+     * The download page / PDF of an Act's own PDF (owner, 2026-11-24): /pdf?j={jurisdiction}&a={act}, plus
+     * &v={language} for every PDF but the Act's first English one (`hi`, `gu`, `bi`, `en-2` …: ActPdf).
+     * The same URL shows the download page (GET without a pass) and sends the PDF (the right answer).
      */
-    public static function actPdf(string $jurisdiction, string $name, bool $download = false): string
+    public static function actPdf(string $jurisdiction, string $act, string $v = '', bool $download = false): string
     {
-        return self::actList($jurisdiction) . '/' . rawurlencode($name) . '.pdf' . ($download ? '?download=1' : '');
+        return self::pdfQuery(['j' => $jurisdiction, 'a' => $act, 'v' => $v], $download);
     }
 
     /**
-     * A PDF's URL: its readable Act PDF URL when it has one (`href` from ActPdf), else by checksum.
+     * A linked document's download page / PDF: /pdf?j=…&a=…&d={tab}&f={file} (Content::tab() gives `f`).
+     */
+    public static function linkedPdf(string $jurisdiction, string $act, string $tab, string $file, bool $download = false): string
+    {
+        return self::pdfQuery(['j' => $jurisdiction, 'a' => $act, 'd' => $tab, 'f' => $file], $download);
+    }
+
+    /**
+     * /pdf?… with the parameters in this order and empty ones left out: the one form FileController
+     * accepts (any other gets a 301 to it).
+     *
+     * @param array<string, string> $params
+     */
+    private static function pdfQuery(array $params, bool $download): string
+    {
+        $params = array_filter($params, static fn(string $v): bool => $v !== '');
+        return '/pdf?' . http_build_query($params + ($download ? ['download' => '1'] : []), '', '&', PHP_QUERY_RFC3986);
+    }
+
+    /**
+     * $url with download=1 added (the PDF is sent as a download, not shown).
+     */
+    public static function withDownload(string $url, bool $download = true): string
+    {
+        return $download ? $url . (str_contains($url, '?') ? '&' : '?') . 'download=1' : $url;
+    }
+
+    /**
+     * A PDF's URL: its /pdf URL when it has one (`href`, from ActPdf or Content::tab), else by checksum.
      *
      * @param array<string, mixed> $file
      */
     public static function pdf(array $file, bool $download = false): string
     {
         if (isset($file['href'])) {
-            return $file['href'] . ($download ? '?download=1' : '');
+            return self::withDownload((string) $file['href'], $download);
         }
         return self::file($file, $download);
     }

@@ -190,6 +190,17 @@ check('pdf via files/<ab>.json', $tmpContent->pdfPath(str_repeat('a', 64)), "$tm
 check('pdf path traversal', [$tmpContent->pdfPath(str_repeat('b', 64)), $tmpContent->pdfPath(str_repeat('c', 64))], [null, null]);
 check('format 2 files.json is not read', $tmpContent->pdfPath(str_repeat('d', 64)), null);
 check('old format not ready', $tmpContent->ready(), false);
+// Linked documents' `f` (owner, 2026-11-24): lowercased name; a different file with the same name gets its folder.
+file_put_contents("$tmp/central/acts/x/rules.json", json_encode(['items' => [
+    ['title' => 'A', 'files' => [['path' => 'central/acts/x/pdf/rules/Ab_C.pdf', 'sha256' => str_repeat('1', 64)]]],
+    ['title' => 'B', 'files' => [['path' => 'central/acts/x/pdf/notifications/ab_c.pdf', 'sha256' => str_repeat('2', 64)], ['filename' => 'no-path.pdf']]],
+    ['title' => 'C', 'files' => [['path' => 'central/acts/x/pdf/rules/Ab_C.pdf', 'sha256' => str_repeat('1', 64)], ['path' => 'central/acts/x/pdf/ab_c.pdf', 'sha256' => str_repeat('3', 64)]]],
+]]));
+$fs = array_merge(...array_map(static fn(array $i): array => array_map(static fn(array $f): ?string => $f['f'] ?? null, $i['files']), $tmpContent->tab('central', 'x', 'rules')));
+check('linked pdf names', $fs, ['ab_c', 'notifications-ab_c', null, 'ab_c', 'pdf-ab_c']);
+check('linked pdf href', $tmpContent->tab('central', 'x', 'rules')[1]['files'][0]['href'] ?? null, '/pdf?j=central&a=x&d=rules&f=notifications-ab_c');
+check('linked pdf by f', [$tmpContent->linkedFile('central', 'x', 'rules', 'pdf-ab_c')['sha256'] ?? null, $tmpContent->linkedFile('central', 'x', 'rules', 'nope')], [str_repeat('3', 64), null]);
+unlink("$tmp/central/acts/x/rules.json");
 array_map('unlink', ["$tmp/central/acts/x/pdf/a.pdf", "$tmp/files/aa.json", "$tmp/files/bb.json", "$tmp/files/cc.json", "$tmp/files.json", "$tmp/manifest.json"]);
 check('jurisdictions from manifest', $content->jurisdictions(), ['central' => 'CENTRAL']);
 check('counts per jurisdiction', [$content->counts('central')['acts'] ?? null, $content->counts('kerala')], [1, []]);
@@ -256,6 +267,13 @@ array_map('unlink', glob("$usedDir/*") ?: []);
 rmdir($usedDir);
 check('short text', [short_text('A2026-18.pdf'), short_text('a1972-28_hindi.pdf'), short_text('हिन्दी-अधिनियम-२०२६.pdf')], ['A2026-18.pdf', 'a1972-28_hin…', 'हिन्दी-अधिनियम-२०…']);
 check('pdf question route', route('/pdf-question'), 'FileController::question []');
+$pageOf = [\LegalQueryWeb\Controller\FileController::class, 'pageOf'];
+check('direct pdf hit goes to its page', [
+    $pageOf('/srv/content/gujarat/acts/x-act-2019/pdf/a2019-1.pdf'),
+    $pageOf('/srv/content/central/acts/customs-act-1962/pdf/notifications/15-2001.pdf'),
+    $pageOf('/srv/content/central/acts/x-act/pdf/unknowntab/a.pdf'),
+    $pageOf('/srv/content/elsewhere/a.pdf'),
+], ['/acts/gujarat/x-act-2019', '/acts/central/customs-act-1962/notifications', '/acts/central/x-act', null]);
 
 Jurisdiction::register(['puducherry' => 'Puducherry']);
 check('jurisdiction short label', [Jurisdiction::short('central'), Jurisdiction::short('puducherry')], ['Central', 'Puducherry']);
@@ -266,24 +284,37 @@ check('act pdf route', route('/acts/central/companies-act-2013.pdf'), 'FileContr
 check('act pdf route hindi', route('/acts/central/companies-act-2013-hindi.pdf'), 'FileController::actPdf {"jurisdiction":"central","name":"companies-act-2013-hindi"}');
 check('act pdf route bad name', [route('/acts/central/Companies.pdf'), route('/acts/central/x/y.pdf'), route('/acts/kerala/x.pdf')], [null, null, null]);
 check('act pdf canonical path', App::canonicalPath('/Acts/Central/X-Act.PDF'), '/acts/central/x-act.pdf');
-check('act pdf url', [Url::actPdf('central', 'x-act-2020'), Url::actPdf('central', 'x-act-2020-hindi', true)], ['/acts/central/x-act-2020.pdf', '/acts/central/x-act-2020-hindi.pdf?download=1']);
-check('pdf url prefers href', [Url::pdf(['href' => '/acts/central/x.pdf'], true), Url::pdf(['sha256' => 'ff', 'filename' => 'a.pdf'])], ['/acts/central/x.pdf?download=1', '/files/ff/a.pdf']);
-$names = fn(array $files): array => array_column(\LegalQueryWeb\ActPdf::choices(['jurisdiction' => 'central', 'slug' => 'x-act-1972', 'files' => $files]), 'href');
+// ---- /pdf URLs (owner, 2026-11-24); the old .pdf names above live on as 301s ----
+check('pdf route', [route('/pdf'), route('/pdf/x'), route('/pdfs')], ['FileController::page []', null, null]);
+check('act pdf url', [Url::actPdf('central', 'x-act-2020'), Url::actPdf('central', 'x-act-2020', 'hi', true), Url::actPdf('gujarat', 'x', 'en-2')],
+    ['/pdf?j=central&a=x-act-2020', '/pdf?j=central&a=x-act-2020&v=hi&download=1', '/pdf?j=gujarat&a=x&v=en-2']);
+check('linked pdf url', Url::linkedPdf('central', 'customs-act-1962', 'notifications', '15-2001', true), '/pdf?j=central&a=customs-act-1962&d=notifications&f=15-2001&download=1');
+check('pdf url prefers href', [Url::pdf(['href' => '/pdf?j=central&a=x'], true), Url::pdf(['href' => '/acts/central/x.pdf'], true), Url::pdf(['sha256' => 'ff', 'filename' => 'a.pdf'])],
+    ['/pdf?j=central&a=x&download=1', '/acts/central/x.pdf?download=1', '/files/ff/a.pdf']);
+$hrefs = fn(array $files): array => array_column(\LegalQueryWeb\ActPdf::choices(['jurisdiction' => 'central', 'slug' => 'x-act-1972', 'files' => $files]), 'href');
+check('act pdf hrefs', $hrefs([$pdf('hi', true, 'hH1972-28.pdf'), $pdf('en', true, '197228.pdf'), $pdf('en', true, 'a1972-28.pdf')]),
+    ['/pdf?j=central&a=x-act-1972', '/pdf?j=central&a=x-act-1972&v=en-2', '/pdf?j=central&a=x-act-1972&v=hi']);
+check('act pdf hrefs bilingual unknown state', $hrefs([$pdf('bi'), $pdf('unknown'), $pdf('hi'), $pdf('hi', true, 'h2.pdf'), $pdf('gu', true, 'g.pdf')]),
+    ['/pdf?j=central&a=x-act-1972&v=bi', '/pdf?j=central&a=x-act-1972&v=hi', '/pdf?j=central&a=x-act-1972&v=hi-2', '/pdf?j=central&a=x-act-1972&v=gu', '/pdf?j=central&a=x-act-1972']);
+check('act pdf by language', [\LegalQueryWeb\ActPdf::byLanguage(['jurisdiction' => 'central', 'slug' => 'x', 'files' => [$pdf('hi')]], 'hi')['href'] ?? null,
+    \LegalQueryWeb\ActPdf::byLanguage(['jurisdiction' => 'central', 'slug' => 'x', 'files' => [$pdf('hi')]], '')], ['/pdf?j=central&a=x&v=hi', null]);
+// Old .pdf names (`name`): still the downloaded file's name and the 301 source.
+$names = fn(array $files): array => array_map(static fn(array $c): string => '/acts/central/' . $c['name'] . '.pdf', \LegalQueryWeb\ActPdf::choices(['jurisdiction' => 'central', 'slug' => 'x-act-1972', 'files' => $files]));
 check('act pdf names', $names([$pdf('hi', true, 'hH1972-28.pdf'), $pdf('en', true, '197228.pdf'), $pdf('en', true, 'a1972-28.pdf')]), ['/acts/central/x-act-1972.pdf', '/acts/central/x-act-1972-english-2.pdf', '/acts/central/x-act-1972-hindi.pdf']);
 check('act pdf names bilingual and unknown', $names([$pdf('bi'), $pdf('unknown'), $pdf('hi'), $pdf('hi', true, 'h2.pdf')]), ['/acts/central/x-act-1972-english-hindi.pdf', '/acts/central/x-act-1972-hindi.pdf', '/acts/central/x-act-1972-hindi-2.pdf', '/acts/central/x-act-1972.pdf']);
 check('act pdf names only hindi', $names([$pdf('hi')]), ['/acts/central/x-act-1972-hindi.pdf']);
 check('act pdf names not archived', $names([$pdf('en', false)]), []);
 check('act pdf names state language', $names([$pdf('gu', true, 'act_no._26_of_2019.pdf'), $pdf('en', true, 'msmeact19.pdf')]), ['/acts/central/x-act-1972.pdf', '/acts/central/x-act-1972-gujarati.pdf']);
 $gujAct = ['jurisdiction' => 'gujarat', 'slug' => 'x-act-2019', 'files' => [$pdf('en', true, 'a.pdf'), $pdf('hi'), $pdf('gu', true, 'g.pdf')]];
-check('act pdf moved english-2', \LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019-english-2')['href'] ?? null, '/acts/gujarat/x-act-2019-gujarati.pdf');
+check('act pdf moved english-2', [\LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019-english-2')['name'] ?? null, \LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019-english-2')['href'] ?? null], ['x-act-2019-gujarati', '/pdf?j=gujarat&a=x-act-2019&v=gu']);
 check('act pdf moved not old', [\LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019'), \LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019-hindi'), \LegalQueryWeb\ActPdf::moved($gujAct, 'x-act-2019-english-3')], [null, null, null]);
-check('act pdf moved alone', \LegalQueryWeb\ActPdf::moved(['jurisdiction' => 'kerala', 'slug' => 'y-act', 'files' => [$pdf('ml')]], 'y-act')['href'] ?? null, '/acts/kerala/y-act-malayalam.pdf');
+check('act pdf moved alone', \LegalQueryWeb\ActPdf::moved(['jurisdiction' => 'kerala', 'slug' => 'y-act', 'files' => [$pdf('ml')]], 'y-act')['href'] ?? null, '/pdf?j=kerala&a=y-act&v=ml');
 check('act pdf candidates', \LegalQueryWeb\ActPdf::candidates('hindi-act-1962-english-hindi-2'), ['hindi-act-1962-english-hindi-2', 'hindi-act-1962', 'hindi-act-1962-english']);
 check('act pdf candidates main', \LegalQueryWeb\ActPdf::candidates('hindi-sahitya-sammelan-act-1962'), ['hindi-sahitya-sammelan-act-1962']);
 check('act pdf candidates hindi', \LegalQueryWeb\ActPdf::candidates('x-act-hindi'), ['x-act-hindi', 'x-act']);
 check('act pdf candidates state language', [\LegalQueryWeb\ActPdf::candidates('x-act-gujarati'), \LegalQueryWeb\ActPdf::candidates('x-act-telugu-2')], [['x-act-gujarati', 'x-act'], ['x-act-telugu-2', 'x-act']]);
 $keralaAct = $content->act('central', $kerala);
-check('fixture act pdf', \LegalQueryWeb\ActPdf::find($keralaAct, $kerala)['href'] ?? null, "/acts/central/$kerala.pdf");
+check('fixture act pdf', \LegalQueryWeb\ActPdf::find($keralaAct, $kerala)['href'] ?? null, "/pdf?j=central&a=$kerala");
 check('fixture act pdf missing', \LegalQueryWeb\ActPdf::find($keralaAct, "$kerala-hindi"), null);
 check('tidy text', tidy_text("7 \n \n\nTHE FIRST SCHEDULE \n\n\n \n1.   Act  \n \n "), "7\n\nTHE FIRST SCHEDULE\n\n1.   Act");
 

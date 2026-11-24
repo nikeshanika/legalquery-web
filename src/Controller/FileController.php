@@ -6,94 +6,184 @@ namespace LegalQueryWeb\Controller;
 
 use LegalQueryWeb\ActPdf;
 use LegalQueryWeb\HttpError;
+use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\PdfGate;
 use LegalQueryWeb\Redirect;
 use LegalQueryWeb\Url;
 
 /**
- * PDFs, shown in the browser or (?download=1) downloaded:
+ * PDFs (owner, 2026-11-24): every PDF has one URL, /pdf?…, that shows its download page and sends the
+ * PDF (inline, or with &download=1 as a download) only after the PDF question:
  *
- * - /acts/{jurisdiction}/{name}.pdf: an Act's own PDF by its readable name (ActPdf, owner 2026-11-19).
- * - /files/{sha256}/{name}.pdf: any exported PDF by checksum (linked documents: rules, notifications …).
- *   A GET of an Act's own PDF here gets a 301 to its readable URL. The name part is never a path.
+ * - /pdf?j={jurisdiction}&a={act}[&v={language}]: an Act's own PDF (ActPdf).
+ * - /pdf?j={jurisdiction}&a={act}&d={tab}&f={file}: a linked document (rules, notifications …; Content::tab).
  *
- * Only the URL is readable; the file on disk keeps its India Code name.
+ * The parameters must come in that order, lowercase, with nothing else (Url::actPdf, Url::linkedPdf): any
+ * other spelling of a PDF that exists gets a 301 to it. Only the URL is readable; the file on disk keeps
+ * its India Code name.
  *
- * With `pdf_captcha` on, every PDF asks a short sum first (PdfGate). The PDF popup (partials/pdf-menu)
- * shows the question from /pdf-question and POSTs the answer to the PDF URL, which then sends the PDF.
- * A plain GET of the URL (no JavaScript, old links) shows the question as a page that POSTs the same way.
+ * Old URLs, kept for links already out there: /acts/{jurisdiction}/{name}.pdf (2026-11-19 to 2026-11-24)
+ * and /files/{sha256}/{name}.pdf get a 301 to the /pdf URL (a 307 for a POST, so an answer is not lost).
+ * A /files/ PDF with no /pdf URL (none known) is still served there.
+ *
+ * With `pdf_captcha` on (PdfGate), a GET without a pass (typed, bookmarked, a search engine, an outside
+ * link) gets the download page (templates/pdf-check.php: what the PDF is, the question, Open / Download,
+ * the Act's other PDFs, back to the Act), which POSTs the answer to the same URL. The site's PDF links
+ * all lead to that page (no popup; owner, 2026-11-24). PDFs and that page are `noindex, nofollow`, and
+ * robots.txt disallows /pdf and /files/.
  */
 final class FileController extends Controller
 {
+    private const SLUG = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
+
+    /**
+     * /pdf?…
+     */
+    public function page(): void
+    {
+        $param = fn(string $key): string => is_string($this->query[$key] ?? null) ? $this->query[$key] : '';
+        [$j, $a, $d, $f, $v] = [$param('j'), $param('a'), $param('d'), $param('f'), $param('v')];
+        $download = $param('download') === '1';
+        if (!Jurisdiction::exists($j) || !preg_match(self::SLUG, $a)) {
+            throw new HttpError(404);
+        }
+        $act = $this->content->act($j, $a) ?? throw new HttpError(404);
+
+        if ($d !== '' || $f !== '') {
+            // A linked document.
+            if ($v !== '' || !isset(ActController::TABS[$d]) || !preg_match('/^[a-z0-9._-]{1,150}$/', $f)) {
+                throw new HttpError(404);
+            }
+            $linked = $this->content->linkedFile($j, $a, $d, $f) ?? throw new HttpError(404);
+            $self = (string) $linked['href'];
+            $this->canonicalRequest(Url::withDownload($self, $download));
+            $path = $this->content->pdfPath((string) ($linked['sha256'] ?? '')) ?? throw new HttpError(404);
+            $name = self::fileName((string) ($linked['filename'] ?? $f . '.pdf'));
+            $this->send($path, $name, $self, $download, 'public, max-age=86400', self::etag((string) $linked['sha256']), $self, $this->info($path, $name, $act, null, $linked));
+            return;
+        }
+
+        if ($v !== '' && !preg_match('/^[a-z]{2,3}(?:-[1-9]\d*)?$/', $v)) {
+            throw new HttpError(404);
+        }
+        $file = ActPdf::byLanguage($act, $v);
+        if ($file === null && $v === '') {
+            // No English PDF: the Act's first PDF (e.g. only Hindi).
+            $first = ActPdf::choices($act)[0] ?? throw new HttpError(404);
+            throw new Redirect(Url::withDownload((string) $first['href'], $download), 301);
+        }
+        $file ?? throw new HttpError(404);
+        $self = (string) $file['href'];
+        $this->canonicalRequest(Url::withDownload($self, $download));
+        $path = $this->content->pdfPath((string) $file['sha256']) ?? throw new HttpError(404);
+        $name = $file['name'] . '.pdf';
+        // The PDF behind a URL can change with a new export: revalidate, by checksum.
+        $this->send($path, $name, $this->canonicalOf($act, $file), $download, 'public, max-age=86400', self::etag((string) $file['sha256']), $self, $this->info($path, $name, $act, $file));
+    }
+
+    /**
+     * /files/{sha256}/{name}.pdf: 301 to the PDF's /pdf URL; served here only when it has none.
+     */
     public function pdf(string $sha, string $name): void
     {
         $path = $this->content->pdfPath($sha) ?? throw new HttpError(404);
         $download = ($this->query['download'] ?? '') === '1';
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' && ($readable = $this->readableUrl($path, $sha))) {
-            throw new Redirect(Url::pdf(['href' => $readable], $download), 301);
+        $href = $this->hrefOf($path, $sha);
+        if ($href !== null) {
+            throw new Redirect(Url::withDownload($href, $download), self::movedStatus());
         }
         $url = Url::file(['sha256' => $sha, 'filename' => $name]);
         // The URL holds the checksum, so the content at a URL never changes.
-        $this->send($path, $name, $url, $download, 'public, max-age=31536000, immutable', null);
+        $this->send($path, $name, $url, $download, 'public, max-age=31536000, immutable', null, null, $this->info($path, $name));
     }
 
     /**
-     * /acts/{jurisdiction}/{name}.pdf
+     * /acts/{jurisdiction}/{name}.pdf (2026-11-19 to 2026-11-24): 301 to the PDF's /pdf URL.
      */
     public function actPdf(string $jurisdiction, string $name): void
     {
         $download = ($this->query['download'] ?? '') === '1';
         foreach (ActPdf::candidates($name) as $slug) {
             $act = $this->content->act($jurisdiction, $slug);
-            $file = $act ? ActPdf::find($act, $name) : null;
+            // Its name then, or a State-language PDF's older name (`{act}-english-2`).
+            $file = $act ? (ActPdf::find($act, $name) ?? ActPdf::moved($act, $name)) : null;
             if ($file) {
-                break;
-            }
-            // A State-language PDF published under its old name (`{act}-english-2`): 301 to its own.
-            $moved = $act ? ActPdf::moved($act, $name) : null;
-            if ($moved) {
-                throw new Redirect(Url::pdf($moved, $download), 301);
+                throw new Redirect(Url::withDownload((string) $file['href'], $download), self::movedStatus());
             }
         }
-        if (empty($file)) {
-            throw new HttpError(404);
+        throw new HttpError(404);
+    }
+
+    /**
+     * A GET or HEAD of any other spelling of $url (order, case, extra parameters): 301 to $url.
+     */
+    private function canonicalRequest(string $url): void
+    {
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (($method === 'GET' || $method === 'HEAD') && ($_SERVER['REQUEST_URI'] ?? $url) !== $url) {
+            throw new Redirect($url, 301);
         }
-        $path = $this->content->pdfPath((string) $file['sha256']) ?? throw new HttpError(404);
-        // The PDF behind a readable URL can change with a new export: revalidate, by checksum.
-        $this->send($path, $name . '.pdf', $this->canonicalOf($act, $file), $download, 'public, max-age=86400', '"' . substr((string) $file['sha256'], 0, 32) . '"', (string) $file['href']);
+    }
+
+    /**
+     * 301 for a GET, 307 for a POST (a PDF question's answer sent to an old URL keeps its body).
+     */
+    private static function movedStatus(): int
+    {
+        return ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' ? 307 : 301;
+    }
+
+    private static function etag(string $sha): string
+    {
+        return '"' . substr($sha, 0, 32) . '"';
+    }
+
+    /**
+     * A safe download name: "Rules 2013 (Amendment).pdf" → "Rules-2013-Amendment-.pdf".
+     */
+    private static function fileName(string $name): string
+    {
+        $name = trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '-', $name), '-.') ?: 'document';
+        return str_ends_with(strtolower($name), '.pdf') ? $name : $name . '.pdf';
     }
 
     /**
      * Sends a PDF, after the question when `pdf_captcha` is on. $url is its canonical URL; $self the
-     * URL the question posts to (defaults to $url).
+     * URL the question posts to (defaults to $url); $info what the download page shows (info()).
+     *
+     * @param array<string, mixed> $info
      */
-    private function send(string $path, string $name, string $url, bool $download, string $cache, ?string $etag, ?string $self = null): void
+    private function send(string $path, string $name, string $url, bool $download, string $cache, ?string $etag, ?string $self = null, array $info = []): void
     {
         $self ??= $url;
         $gate = $this->gate();
         if ($gate) {
-            $urlPath = (string) parse_url($self, PHP_URL_PATH);
+            // Every open asks the question again (owner, 2026-11-24): a click on a PDF link, a reload or a typed URL
+            // (a GET) always gets the download page. The one exception is the browser's PDF viewer saving the PDF
+            // it just showed: Chrome does that by sending the very same POST again (its token already used up)
+            // and fails without the PDF ("Check Internet connection"). So a right answer sets a pass for this
+            // PDF URL ($self, without download=1) and this one token, in a cookie of its own (every /pdf URL has
+            // the same path), for PASS_TTL; it opens the PDF only for a POST carrying that same token.
+            $cookie = PdfGate::PASS_COOKIE . '_' . substr(hash('sha256', $self), 0, 16);
             $token = (string) ($_POST['token'] ?? '');
             $asked = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $token !== '';
-            // A right answer gives a pass for this one PDF URL for a few minutes. With a valid pass the PDF goes
-            // out for GET and POST alike: the browser's PDF viewer downloads by fetching the URL again, Chrome
-            // by sending the same POST again (its token already used up), other browsers by a GET.
             if ($asked && $gate->check($token, (string) ($_POST['answer'] ?? ''))) {
-                setcookie(PdfGate::PASS_COOKIE, $gate->pass($urlPath), [
+                setcookie($cookie, $gate->pass($self . '|' . $token), [
                     'expires' => time() + PdfGate::PASS_TTL,
-                    'path' => $urlPath,
+                    'path' => (string) parse_url($self, PHP_URL_PATH),
                     'secure' => self::https(),
                     'httponly' => true,
                     'samesite' => 'Lax',
                 ]);
-            } elseif (!$gate->passes((string) ($_COOKIE[PdfGate::PASS_COOKIE] ?? ''), $urlPath)) {
-                $this->askQuestion($gate, $name, Url::pdf(['href' => $self], $download), $asked);
+            } elseif (!$asked || !$gate->passes((string) ($_COOKIE[$cookie] ?? ''), $self . '|' . $token)) {
+                // Opened directly, from a link, a search engine, or a wrong answer: the download page.
+                $this->askQuestion($gate, $name, $self, $download, $asked, $info);
                 return;
             }
         }
-
-        // ?download=1 is the same file: point search engines at the plain URL.
+        // ?download=1 is the same file: point search engines at the plain URL. PDFs stay out of search results.
         header(sprintf('Link: <%s>; rel="canonical"', $this->view->absolute($url)));
+        header('X-Robots-Tag: noindex, nofollow');
         // Behind the question the PDF must not sit in a shared cache (Cloudflare, proxies), or that cache
         // would hand it out to anyone: `private`. The reader's own browser may keep it for the pass's
         // lifetime: Chrome's PDF viewer downloads a PDF that came from a POST only from its cache, and with
@@ -121,20 +211,92 @@ final class FileController extends Controller
     }
 
     /**
-     * The readable URL of a PDF stored as an Act's own PDF (content/<j>/acts/<act>/pdf/<file>), or null.
+     * The page that lists the PDF stored at $path: its Act page for the Act's own PDF
+     * (content/<j>/acts/<act>/pdf/<file>), the Act's tab for a linked document
+     * (…/pdf/rules/<file> → /acts/<j>/<act>/rules), else null.
      */
-    private function readableUrl(string $path, string $sha): ?string
+    public static function pageOf(string $path): ?string
     {
-        if (!preg_match('#/([a-z0-9-]+)/acts/([a-z0-9-]+)/pdf/[^/]+$#', $path, $m)) {
+        if (!preg_match('#/([a-z0-9-]+)/acts/([a-z0-9-]+)/pdf/(?:([a-z]+)/)?[^/]+$#', $path, $m)) {
             return null;
         }
-        $act = $this->content->act($m[1], $m[2]);
-        foreach ($act ? ActPdf::choices($act) : [] as $file) {
+        $tab = $m[3] ?? '';
+        return Url::act($m[1], $m[2], isset(ActController::TABS[$tab]) ? $tab : '');
+    }
+
+    /**
+     * What the download page says about the PDF at $path: `title`, `rows` (label => value), `back` (URL)
+     * and, for an Act's own PDF, `others` (the Act's other PDFs: label, lang, href).
+     *
+     * @param array<string, mixed>|null $act the Act whose PDF URL this is (else found from $path)
+     * @param array<string, mixed>|null $file its choice (ActPdf::choices) when it is an Act's own PDF
+     * @param array<string, mixed>|null $linked its file (Content::linkedFile) when it is a linked document
+     *
+     * @return array<string, mixed>
+     */
+    private function info(string $path, string $name, ?array $act = null, ?array $file = null, ?array $linked = null): array
+    {
+        preg_match('#/([a-z0-9-]+)/acts/([a-z0-9-]+)/pdf/(?:([a-z]+)/)?[^/]+$#', $path, $m);
+        $act ??= isset($m[1]) ? $this->content->act($m[1], $m[2]) : null;
+        $tab = $linked !== null ? (string) $linked['tab'] : ($file === null ? ($m[3] ?? '') : '');
+        $rows = [];
+        if ($act && $file === null) {
+            $rows['Under'] = (string) ($act['title'] ?? '');
+        }
+        if ($act) {
+            $rows['Jurisdiction'] = Jurisdiction::short((string) $act['jurisdiction']);
+        }
+        $rows['Document'] = $file !== null
+            ? 'The Act, as published'
+            : (isset(ActController::TABS[$tab]) ? collection_label(ActController::TABS[$tab]) : 'Document');
+        if ($file !== null) {
+            $rows['Language'] = (string) $file['label'];
+        }
+        if (!empty($linked['date'])) {
+            $rows['Date'] = format_date((string) $linked['date']);
+        }
+        $rows['Size'] = format_size((int) filesize($path));
+        $rows['File'] = $name;
+        $back = match (true) {
+            $act === null => Url::home(),
+            $file !== null => Url::act((string) $act['jurisdiction'], (string) $act['slug']),
+            $linked !== null => Url::act((string) $act['jurisdiction'], (string) $act['slug'], $tab),
+            default => self::pageOf($path) ?? Url::act((string) $act['jurisdiction'], (string) $act['slug']),
+        };
+        $others = [];
+        foreach ($file !== null && $act ? ActPdf::choices($act) : [] as $choice) {
+            if ($choice['href'] !== $file['href']) {
+                $others[] = ['label' => $choice['label'], 'lang' => $choice['lang'], 'href' => $choice['href']];
+            }
+        }
+        // Else only the file name to go by: "Investigation-of-…-Rules-2013.pdf" → "Investigation of … Rules 2013".
+        $title = match (true) {
+            $act && $file !== null => (string) $act['title'],
+            !empty($linked['title']) => (string) $linked['title'],
+            default => trim((string) preg_replace('/[-_\s]+/', ' ', (string) preg_replace('/\.pdf$/i', '', $name))),
+        };
+        return ['title' => $title, 'rows' => $rows, 'back' => $back, 'others' => $others];
+    }
+
+    /**
+     * The /pdf URL of the PDF stored at $path with checksum $sha: an Act's own PDF (its canonical URL) or
+     * a linked document of the Act whose folder holds it. Null when it has none.
+     */
+    private function hrefOf(string $path, string $sha): ?string
+    {
+        if (!preg_match('#/([a-z0-9-]+)/acts/([a-z0-9-]+)/pdf/(?:[^/]+/)?[^/]+$#', $path, $m)) {
+            return null;
+        }
+        $act = $this->content->act($m[1], $m[2]) ?? null;
+        if ($act === null) {
+            return null;
+        }
+        foreach (ActPdf::choices($act) as $file) {
             if ($file['sha256'] === $sha) {
                 return $this->canonicalOf($act, $file);
             }
         }
-        return null;
+        return $this->content->linkedHref($act, $sha, array_keys(ActController::TABS));
     }
 
     /**
@@ -168,7 +330,8 @@ final class FileController extends Controller
     }
 
     /**
-     * /pdf-question: a new question as JSON, for the PDF popup.
+     * /pdf-question: a new question as JSON, for the download page: after Open or Download it swaps in a
+     * new question (a token works once; owner, 2026-11-24).
      */
     public function question(): void
     {
@@ -204,18 +367,26 @@ final class FileController extends Controller
         return $secret;
     }
 
-    private function askQuestion(PdfGate $gate, string $name, string $url, bool $wrong): void
+    /**
+     * The download page: what the PDF is, the question, Open / Download (POST to $self, the PDF URL).
+     *
+     * @param array<string, mixed> $info
+     */
+    private function askQuestion(PdfGate $gate, string $name, string $self, bool $download, bool $wrong, array $info): void
     {
         header('Cache-Control: no-store');
-        header('X-Robots-Tag: noindex');
+        header('X-Robots-Tag: noindex, nofollow');
         $this->view->page('pdf-check', [
             'question' => $gate->question(),
             'name' => $name,
-            'action' => $url,
+            'open' => Url::pdf(['href' => $self]),
+            'download' => Url::pdf(['href' => $self], true),
+            'wantsDownload' => $download,
             'wrong' => $wrong,
+            'info' => $info + ['title' => $name, 'rows' => [], 'back' => Url::home(), 'others' => []],
         ], [
-            'title' => 'Open PDF: ' . $name,
-            'robots' => 'noindex',
+            'title' => 'Download PDF: ' . ($info['title'] ?? $name),
+            'robots' => 'noindex, nofollow',
             'canonical' => null,
             'nav' => '',
             'status' => $wrong ? 422 : 200,
