@@ -1,15 +1,16 @@
 <?php
 /**
- * The button for a document's PDF. One PDF: "View" opens it. More than one language: "View" opens a
- * small popup beside it with one button per language (English, हिन्दी, English + हिन्दी …) that opens
- * that PDF (owner, 2026-11-18): see pdf_choices() and partials/pdf-menu.php. A file that is not
- * archived yet gets no button: no links to India Code (owner, 2026-11-03).
+ * The link to a document's PDF: "View" goes to its download page (/pdf?…; the PDF question, then Open /
+ * Download; owner, 2026-11-24, no popup). In more than one language: one link per language (English,
+ * हिन्दी, English + हिन्दी …; pdf_choices()). A file that is not archived yet gets no link: no links to
+ * India Code (owner, 2026-11-03).
  *
  * @var LegalQueryWeb\View $view
  * @var list<array{filename: string, language: string, size: ?int, sha256?: string}> $files
- * @var bool $compact Small buttons (tables): no download button.
+ * @var bool $compact Small buttons (tables). Same links; kept for the callers.
  */
-$compact ??= false;
+use LegalQueryWeb\Url;
+
 if (!$files) {
     echo '<span class="note">No PDF</span>';
     return;
@@ -18,24 +19,13 @@ $choices = pdf_choices($files);
 if (!$choices) {
     return;
 }
-$file = $choices[0];
-// With the PDF question on, one PDF also opens the popup (it holds the question).
-$popup = count($choices) > 1 || !empty($view->config['pdf_captcha']);
+$several = count($choices) > 1;
+$title = static fn(array $f): string => $f['filename'] . (!empty($f['size']) ? ' · ' . format_size($f['size']) : '');
+// lang="hi", lang="gu" …: a link named in that language (not for English or English + हिन्दी).
+$langOf = static fn(array $f): string => in_array($f['lang'], ['en', 'bi', 'unknown'], true) ? '' : ' lang="' . e($f['lang']) . '"';
 ?>
 <span class="views">
-<?php if (!$popup): ?>
-  <a class="view" href="<?= e(LegalQueryWeb\Url::pdf($file)) ?>" target="_blank" rel="noopener" title="<?= e($file['filename'] . ' · ' . format_size($file['size'] ?? null)) ?>">View</a>
-<?php if (!$compact): ?>
-  <a class="view" href="<?= e(LegalQueryWeb\Url::pdf($file, true)) ?>" title="Download <?= e($file['filename']) ?>">⤓</a>
-<?php endif; ?>
-<?php else: ?>
-  <details class="pdf-pick">
-<?php if (count($choices) > 1): ?>
-    <summary class="view" title="PDF available in <?= count($choices) ?> versions: choose a language">View ▾</summary>
-<?php else: ?>
-    <summary class="view" title="<?= e($file['filename'] . ' · ' . format_size($file['size'] ?? null)) ?>">View</summary>
-<?php endif; ?>
-    <?= $view->partial('pdf-menu', ['choices' => $choices, 'download' => !$compact]) ?>
-  </details>
-<?php endif; ?>
+<?php foreach ($choices as $file): ?>
+  <a class="view" href="<?= e(Url::pdf($file)) ?>" rel="nofollow" title="<?= e($title($file)) ?>"<?= $several ? $langOf($file) : '' ?>><?= e($several ? $file['label'] : 'View') ?></a>
+<?php endforeach; ?>
 </span>

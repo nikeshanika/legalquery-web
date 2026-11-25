@@ -5,28 +5,30 @@ declare(strict_types=1);
 namespace LegalQueryWeb;
 
 /**
- * The readable URLs of an Act's own PDFs (owner, 2026-11-19): /acts/{jurisdiction}/{act}.pdf instead
- * of /files/{sha256}/{India Code name}.pdf. Only the URL changes; the PDF on disk keeps its name.
+ * The PDFs of an Act and their URLs.
  *
- * Name of each PDF, from pdf_choices() (archived PDFs, each checksum once, English first):
+ * Since 2026-11-24 (owner) every Act PDF is at /pdf?j={jurisdiction}&a={act}[&v={language}] (Url::actPdf):
+ * that URL shows the download page, and sends the PDF only after the PDF question. `v` of each PDF, from
+ * pdf_choices() (archived PDFs, each checksum once, English first):
  *
- * - English (and a PDF of unknown language): `{act}`
- * - English + Hindi in one PDF: `{act}-english-hindi`
- * - Hindi: `{act}-hindi`
- * - A State language (owner, 2026-11-23): `{act}-gujarati`, `{act}-malayalam` … (PDF_LANGUAGES)
- * - A second PDF that would get the same name: `-2`, `-3` … on the language word
- *   (`{act}-english-2`, `{act}-hindi-2`).
- * - AI translation (demo, `ai_translations_dir`; owner 2026-11-21): `{act}-hindi-ai`, `{act}-bengali-ai`.
+ * - the Act's first English PDF (or a PDF of unknown language): no `v`
+ * - any other: its language code, `hi`, `bi` (English + Hindi), `gu`, `ml` … (PDF_LANGUAGES)
+ * - a second PDF of the same language: `-2`, `-3` … (`en-2`, `hi-2`)
+ * - AI translation (demo, `ai_translations_dir`; owner 2026-11-21): `hi-ai`, `bn-ai`, after the official PDFs
  *
- * Until 2026-11-23 the export tagged State-language PDFs English or unknown, so they were published
- * as `{act}-english-2` (or `{act}` when alone): moved() finds those old names for a 301.
+ * Before that (2026-11-19 to 2026-11-24) the PDFs had readable .pdf URLs, kept as 301s (FileController):
+ * `{act}`, `{act}-english-hindi`, `{act}-hindi`, `{act}-gujarati` … (`name` of each choice, also the
+ * downloaded file's name), and `{act}-english-2` for a second PDF of a language. Until 2026-11-23 the
+ * export tagged State-language PDFs English or unknown, so they were published as `{act}-english-2`
+ * (or `{act}` when alone): moved() finds those old names.
  *
- * Linked documents (rules, notifications …) keep their /files/ URLs: they have no slugs.
+ * Linked documents (rules, notifications …) get theirs from Content::tab().
  */
 final class ActPdf
 {
     /**
-     * pdf_choices() of the Act's files, each with `name` (URL name without ".pdf") and `href`.
+     * pdf_choices() of the Act's files, each with `v` (URL language, '' for the first English PDF),
+     * `name` (old .pdf URL name without ".pdf", the downloaded file's name) and `href` (its /pdf URL).
      *
      * @param array<string, mixed> $act act.json (with `jurisdiction`)
      *
@@ -34,13 +36,59 @@ final class ActPdf
      */
     public static function choices(array $act): array
     {
-        return self::named($act, static fn(string $lang): string => \PDF_LANGUAGES[$lang][1] ?? 'english');
+        $taken = [];
+        $out = [];
+        foreach (self::named($act, static fn(string $lang): string => \PDF_LANGUAGES[$lang][1] ?? 'english') as $choice) {
+            $code = $choice['lang'] === 'unknown' || !isset(\PDF_LANGUAGES[$choice['lang']]) ? 'en' : (string) $choice['lang'];
+            $taken[$code] = ($taken[$code] ?? 0) + 1;
+            $n = $taken[$code];
+            $v = match (true) {
+                $n > 1 => "$code-$n",
+                $code === 'en' => '',
+                default => $code,
+            };
+            $out[] = ['v' => $v, 'href' => Url::actPdf((string) $act['jurisdiction'], (string) $act['slug'], $v)] + $choice;
+        }
+        // AI translations (Content::aiFiles, demo): after the official PDFs, marked `ai`, never official.
+        // No AI Hindi when the Act already has an official Hindi PDF (Hindi or English + Hindi; owner 2026-11-21).
+        $officialHindi = (bool) array_intersect(['hi', 'bi'], array_column($out, 'lang'));
+        foreach ($act['ai_files'] ?? [] as $file) {
+            $lang = (string) ($file['language'] ?? '');
+            if (!isset(Content::AI_LANGUAGES[$lang], self::AI_LABEL[$lang]) || ($lang === 'hi' && $officialHindi)) {
+                continue;
+            }
+            $v = "$lang-ai";
+            $out[] = $file + ['v' => $v, 'lang' => $lang, 'label' => self::AI_LABEL[$lang], 'ai' => true,
+                'name' => $act['slug'] . '-' . Content::AI_LANGUAGES[$lang],
+                'href' => Url::actPdf((string) $act['jurisdiction'], (string) $act['slug'], $v)];
+        }
+        return $out;
+    }
+
+    /** Button text of an AI translation: the language in its own script + "AI translation". */
+    private const AI_LABEL = ['hi' => 'हिन्दी (AI अनुवाद)', 'bn' => 'বাংলা (AI অনুবাদ)'];
+
+    /**
+     * The Act PDF whose `v` is $v ('' = the first English PDF), or null.
+     *
+     * @param array<string, mixed> $act
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function byLanguage(array $act, string $v): ?array
+    {
+        foreach (self::choices($act) as $choice) {
+            if ($choice['v'] === $v) {
+                return $choice;
+            }
+        }
+        return null;
     }
 
     /**
-     * The choice now published under an old name of a State-language PDF (see the class comment):
-     * the names choices() gave when only English, Hindi and English + Hindi were known. Null when
-     * $name was no such name.
+     * The choice that was published under an old name of a State-language PDF (see the class comment):
+     * the names given when only English, Hindi and English + Hindi were known. Null when $name was no
+     * such name.
      *
      * @param array<string, mixed> $act
      *
@@ -63,6 +111,8 @@ final class ActPdf
     }
 
     /**
+     * pdf_choices() with `name`: the Act slug plus the URL word of its language ($wordOf).
+     *
      * @param array<string, mixed> $act
      * @param callable(string): string $wordOf URL word of a language code
      *
@@ -81,29 +131,13 @@ final class ActPdf
                 $word === 'english' => '',
                 default => "-$word",
             };
-            $name = $act['slug'] . $suffix;
-            $out[] = $choice + ['name' => $name, 'href' => Url::actPdf((string) $act['jurisdiction'], $name)];
-        }
-        // AI translations (Content::aiFiles, demo): after the official PDFs, marked `ai`, never official.
-        // No AI Hindi when the Act already has an official Hindi PDF (Hindi or English + Hindi; owner 2026-11-21).
-        $officialHindi = (bool) array_intersect(['hi', 'bi'], array_column($out, 'lang'));
-        foreach ($act['ai_files'] ?? [] as $file) {
-            $lang = (string) ($file['language'] ?? '');
-            if (!isset(Content::AI_LANGUAGES[$lang], self::AI_LABEL[$lang]) || ($lang === 'hi' && $officialHindi)) {
-                continue;
-            }
-            $name = $act['slug'] . '-' . Content::AI_LANGUAGES[$lang];
-            $out[] = $file + ['lang' => $lang, 'label' => self::AI_LABEL[$lang], 'ai' => true,
-                'name' => $name, 'href' => Url::actPdf((string) $act['jurisdiction'], $name)];
+            $out[] = $choice + ['name' => $act['slug'] . $suffix];
         }
         return $out;
     }
 
-    /** Button text of an AI translation: the language in its own script + "AI translation". */
-    private const AI_LABEL = ['hi' => 'हिन्दी (AI अनुवाद)', 'bn' => 'বাংলা (AI অনুবাদ)'];
-
     /**
-     * The Act PDF called $name (URL name without ".pdf"), or null.
+     * The Act PDF that had the old .pdf URL name $name (URL name without ".pdf"), or null.
      *
      * @param array<string, mixed> $act
      *
@@ -120,7 +154,7 @@ final class ActPdf
     }
 
     /**
-     * Act slugs that a URL name can belong to: the name itself (main PDF), then the name without
+     * Act slugs that an old .pdf URL name can belong to: the name itself (main PDF), then the name without
      * each language suffix it ends with. The caller takes the first Act that has a PDF of that name.
      *
      * @return list<string>

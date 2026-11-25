@@ -40,6 +40,7 @@ final class Router
             ['#^/sitemap-(?<part>\d+)\.xml$#', [SeoController::class, 'sitemapPart']],
             ['#^/robots\.txt$#', [SeoController::class, 'robots']],
             ['#^/pdf-question$#', [FileController::class, 'question']],
+            ['#^/pdf$#', [FileController::class, 'page']],
             ['#^/files/(?<sha>[0-9a-f]{64})/(?<name>[A-Za-z0-9._-]{1,120})$#', [FileController::class, 'pdf']],
             ['#^/(?<category>' . self::TABS . ')' . self::PAGE . '$#', [CategoryController::class, 'index']],
             ['#^' . $list . '/(?<name>[a-z0-9]+(?:-[a-z0-9]+)*)\.pdf$#', [FileController::class, 'actPdf']],
