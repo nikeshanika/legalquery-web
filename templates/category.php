@@ -17,7 +17,7 @@ use LegalQueryWeb\Url;
 <?= $view->partial('crumbs', ['crumbs' => [['Home', Url::home()]], 'current' => $heading]) ?>
 <div class="page-head">
   <h1><?= e($heading) ?></h1>
-  <p>Central Acts with <?= e(strtolower($heading)) ?> made under them, from India Code. Open an Act to read its <?= e(strtolower($heading)) ?> and their official PDFs.</p>
+  <p>Central Acts with <?= e(strtolower($heading)) ?> made under them. Open an Act to read its <?= e(strtolower($heading)) ?> and their official PDFs.</p>
 </div>
 <div class="list-layout">
   <nav class="card filter-card" aria-label="Categories">

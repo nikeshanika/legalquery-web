@@ -13,7 +13,7 @@ use LegalQueryWeb\Url;
 <?= $view->partial('crumbs', ['crumbs' => [['Home', Url::home()]], 'current' => 'States and Union Territories']) ?>
 <div class="page-head">
   <h1>States and Union Territories</h1>
-  <p>Acts of each State and Union Territory as listed on India Code, with sections where India Code has them, rules, notifications and official PDFs. More States are being added.</p>
+  <p>Acts of each State and Union Territory, with sections where available, rules, notifications and official PDFs. More States are being added.</p>
 </div>
 <?php foreach ($groups as $heading => $entries): ?>
 <?php if ($heading === 'Union Territories' && count($groups) > 1): ?>

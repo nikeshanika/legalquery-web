@@ -1,6 +1,7 @@
 <?php
 /**
- * Act page, linked-document tab (Rules, Notifications, ...): paged table with PDFs.
+ * Act page, linked-document tab (Rules, Notifications, ...): paged table with PDFs. Every document of a tab has
+ * the tab's type, so no RULE / NOTIFICATION label per row (owner, 2026-11-26).
  *
  * @var LegalQueryWeb\View $view
  * @var array<string, mixed> $act
@@ -20,7 +21,7 @@
 <?php foreach ($items as $doc): ?>
         <tr>
           <td class="nowrap"><?= e(format_date($doc['date'])) ?></td>
-          <td><span class="type t-<?= e($doc['collection']) ?>"><?= e(collection_label($doc['collection'])) ?></span><div class="doc-title"><?= e($doc['title']) ?><?= $doc['state'] !== '' ? ' <span class="note">(' . e($doc['state']) . ')</span>' : '' ?></div></td>
+          <td><div class="doc-title"><?= e($doc['title']) ?><?= $doc['state'] !== '' ? ' <span class="note">(' . e($doc['state']) . ')</span>' : '' ?></div></td>
           <td><?= $view->partial('file-links', ['files' => $doc['files'], 'compact' => true]) ?></td>
         </tr>
 <?php endforeach; ?>

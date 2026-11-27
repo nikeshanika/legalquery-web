@@ -41,7 +41,7 @@ final class StatesController extends Controller
         }
         $this->view->page('states', ['groups' => array_filter($groups)], [
             'title' => 'Acts of the States and Union Territories of India',
-            'description' => 'State and Union Territory Acts of India as listed on India Code, with sections '
+            'description' => 'State and Union Territory Acts of India, with sections '
                 . 'where available, rules, notifications and official PDFs.',
             'canonical' => Url::states(),
             'nav' => 'states',

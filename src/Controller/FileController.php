@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace LegalQueryWeb\Controller;
 
 use LegalQueryWeb\ActPdf;
+use LegalQueryWeb\Content;
 use LegalQueryWeb\HttpError;
 use LegalQueryWeb\Jurisdiction;
 use LegalQueryWeb\PdfGate;
+use LegalQueryWeb\PdfTitle;
 use LegalQueryWeb\Redirect;
 use LegalQueryWeb\Url;
 
@@ -17,14 +19,17 @@ use LegalQueryWeb\Url;
  *
  * - /pdf?j={jurisdiction}&a={act}[&v={language}]: an Act's own PDF (ActPdf).
  * - /pdf?j={jurisdiction}&a={act}&d={tab}&f={file}: a linked document (rules, notifications …; Content::tab).
+ * - /pdf?j={jurisdiction}&a={act}&s={provision}&f={file}: a document linked only from sections or schedules
+ *   (Content::pdfLinks; owner, 2026-11-26).
  *
- * The parameters must come in that order, lowercase, with nothing else (Url::actPdf, Url::linkedPdf): any
+ * The parameters must come in that order, lowercase, with nothing else (Url::actPdf, Url::linkedPdf,
+ * Url::provisionPdf): any
  * other spelling of a PDF that exists gets a 301 to it. Only the URL is readable; the file on disk keeps
  * its India Code name.
  *
  * Old URLs, kept for links already out there: /acts/{jurisdiction}/{name}.pdf (2026-11-19 to 2026-11-24)
  * and /files/{sha256}/{name}.pdf get a 301 to the /pdf URL (a 307 for a POST, so an answer is not lost).
- * A /files/ PDF with no /pdf URL (none known) is still served there.
+ * A /files/ PDF with no /pdf URL (linked from nowhere on the site) is still served there.
  *
  * With `pdf_captcha` on (PdfGate), a GET without a pass (typed, bookmarked, a search engine, an outside
  * link) gets the download page (templates/pdf-check.php: what the PDF is, the question, Open / Download,
@@ -42,12 +47,27 @@ final class FileController extends Controller
     public function page(): void
     {
         $param = fn(string $key): string => is_string($this->query[$key] ?? null) ? $this->query[$key] : '';
-        [$j, $a, $d, $f, $v] = [$param('j'), $param('a'), $param('d'), $param('f'), $param('v')];
+        [$j, $a, $d, $s, $f, $v] = [$param('j'), $param('a'), $param('d'), $param('s'), $param('f'), $param('v')];
         $download = $param('download') === '1';
         if (!Jurisdiction::exists($j) || !preg_match(self::SLUG, $a)) {
             throw new HttpError(404);
         }
         $act = $this->content->act($j, $a) ?? throw new HttpError(404);
+
+        if ($s !== '') {
+            // A document linked only from sections or schedules.
+            if ($d !== '' || $v !== '' || !preg_match(self::SLUG, $s) || !preg_match('/^[a-z0-9._-]{1,150}$/', $f)) {
+                throw new HttpError(404);
+            }
+            $link = $this->content->provisionFile($act, array_keys(ActController::TABS), $s, $f) ?? throw new HttpError(404);
+            $self = (string) $link['href'];
+            $this->canonicalRequest(Url::withDownload($self, $download));
+            $sha = (string) ($link['file']['sha256'] ?? '');
+            $path = $this->content->pdfPath($sha) ?? throw new HttpError(404);
+            $name = self::fileName((string) ($link['file']['filename'] ?? $f . '.pdf'));
+            $this->send($path, $name, $self, $download, 'public, max-age=86400', self::etag($sha), $self, $this->info($path, $name, $act, found: $link));
+            return;
+        }
 
         if ($d !== '' || $f !== '') {
             // A linked document.
@@ -192,6 +212,11 @@ final class FileController extends Controller
         // lifetime: Chrome's PDF viewer downloads a PDF that came from a POST only from its cache, and with
         // `no-store` that download failed ("Check Internet connection", then "Resume").
         header('Cache-Control: ' . ($gate ? 'private, max-age=' . PdfGate::PASS_TTL : $cache));
+        // The site's title instead of the file's own Title metadata, which is often junk (PdfTitle).
+        $suffix = PdfTitle::suffix($path, (string) ($info['title'] ?? ''));
+        if ($etag !== null && $suffix !== '') {
+            $etag = '"' . substr(hash('sha256', $etag . $suffix), 0, 32) . '"';
+        }
         if (!$gate && $etag !== null) {
             header('ETag: ' . $etag);
             $sent = array_map('trim', explode(',', (string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')));
@@ -201,7 +226,7 @@ final class FileController extends Controller
             }
         }
         header('Content-Type: application/pdf');
-        header('Content-Length: ' . filesize($path));
+        header('Content-Length: ' . (filesize($path) + strlen($suffix)));
         header(sprintf('Content-Disposition: %s; filename="%s"', $download ? 'attachment' : 'inline', $name));
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') {
             return;
@@ -211,6 +236,7 @@ final class FileController extends Controller
             ob_end_flush();
         }
         readfile($path);
+        echo $suffix;
     }
 
     /**
@@ -234,15 +260,20 @@ final class FileController extends Controller
      * @param array<string, mixed>|null $act the Act whose PDF URL this is (else found from $path)
      * @param array<string, mixed>|null $file its choice (ActPdf::choices) when it is an Act's own PDF
      * @param array<string, mixed>|null $linked its file (Content::linkedFile) when it is a linked document
+     * @param array<string, mixed>|null $found its entry in Content::pdfLinks when it is linked only from sections
      *
      * @return array<string, mixed>
      */
-    private function info(string $path, string $name, ?array $act = null, ?array $file = null, ?array $linked = null): array
+    private function info(string $path, string $name, ?array $act = null, ?array $file = null, ?array $linked = null, ?array $found = null): array
     {
         preg_match('#/([a-z0-9-]+)/acts/([a-z0-9-]+)/pdf/(?:([a-z]+)/)?[^/]+$#', $path, $m);
         $act ??= isset($m[1]) ? $this->content->act($m[1], $m[2]) : null;
         $tab = $linked !== null ? (string) $linked['tab'] : ($file === null ? ($m[3] ?? '') : '');
         $rows = [];
+        $notice = '';
+        // Linked only from a section or schedule: that link gives its title, date, language and the document's
+        // other PDFs (owner, 2026-11-26).
+        $foundDoc = $found['doc'] ?? null;
         if ($act && $file === null) {
             $rows['Under'] = (string) ($act['title'] ?? '');
         }
@@ -256,10 +287,12 @@ final class FileController extends Controller
             $rows['Language'] = (string) $file['label'];
             if (!empty($file['ai'])) {
                 $rows['Document'] = 'AI translation of the Act: not official, not reviewed';
+                $notice = self::aiNotice((string) $file['lang']);
             }
         }
-        if (!empty($linked['date'])) {
-            $rows['Date'] = format_date((string) $linked['date']);
+        $date = (string) ($linked['date'] ?? $foundDoc['date'] ?? '');
+        if ($date !== '') {
+            $rows['Date'] = format_date($date);
         }
         $rows['Size'] = format_size((int) filesize($path));
         $rows['File'] = $name;
@@ -267,26 +300,71 @@ final class FileController extends Controller
             $act === null => Url::home(),
             $file !== null => Url::act((string) $act['jurisdiction'], (string) $act['slug']),
             $linked !== null => Url::act((string) $act['jurisdiction'], (string) $act['slug'], $tab),
-            default => self::pageOf($path) ?? Url::act((string) $act['jurisdiction'], (string) $act['slug']),
+            // Linked only from sections: the first section that links it (owner, 2026-11-26). A PDF linked from
+            // nowhere (served at /files/) may still sit in a tab's folder (pdf/notifications/ …): that tab when
+            // the Act has it, else the Act page.
+            $found !== null && $this->provisionUrl($act, $found['slug']) !== null => (string) $this->provisionUrl($act, $found['slug']),
+            !empty($act['tabs'][$tab]) && isset(ActController::TABS[$tab]) => Url::act((string) $act['jurisdiction'], (string) $act['slug'], $tab),
+            default => Url::act((string) $act['jurisdiction'], (string) $act['slug']),
         };
         $others = [];
         foreach ($file !== null && $act ? ActPdf::choices($act) : [] as $choice) {
             if ($choice['href'] !== $file['href']) {
-                $others[] = ['label' => $choice['label'], 'lang' => $choice['lang'], 'href' => $choice['href']];
+                $others[] = ['label' => $choice['label'], 'lang' => $choice['lang'], 'href' => $choice['href'], 'ai' => !empty($choice['ai'])];
+            }
+        }
+        // A linked document (rule, notification, amendment …): its language and its PDFs in other languages, if any
+        // (most have only English), so the header language menu lists only those (owner, 2026-11-26).
+        $lang = $file !== null ? (string) $file['lang'] : '';
+        if ($linked !== null) {
+            $lang = 'unknown';
+            foreach (pdf_choices(array_values(array_filter((array) ($linked['item_files'] ?? []), static fn($f): bool => is_array($f) && isset($f['href'])))) as $choice) {
+                if ($choice['href'] === $linked['href']) {
+                    $lang = (string) $choice['lang'];
+                } else {
+                    $others[] = ['label' => $choice['label'], 'lang' => $choice['lang'], 'href' => $choice['href'], 'ai' => false];
+                }
+            }
+        }
+        if ($foundDoc !== null) {
+            $lang = 'unknown';
+            $links = $this->content->pdfLinks($act, array_keys(ActController::TABS));
+            foreach (pdf_choices(array_values(array_filter((array) ($foundDoc['files'] ?? []), 'is_array'))) as $choice) {
+                if ($choice['sha256'] === ($found['file']['sha256'] ?? null)) {
+                    $lang = (string) $choice['lang'];
+                } else {
+                    $others[] = ['label' => $choice['label'], 'lang' => $choice['lang'], 'href' => (string) ($links[$choice['sha256']]['href'] ?? Url::pdf($choice)), 'ai' => false];
+                }
             }
         }
         // Else only the file name to go by: "Investigation-of-…-Rules-2013.pdf" → "Investigation of … Rules 2013".
         $title = match (true) {
             $act && $file !== null => (string) $act['title'],
             !empty($linked['title']) => (string) $linked['title'],
+            !empty($foundDoc['title']) => (string) $foundDoc['title'],
             default => trim((string) preg_replace('/[-_\s]+/', ' ', (string) preg_replace('/\.pdf$/i', '', $name))),
         };
-        return ['title' => $title, 'rows' => $rows, 'back' => $back, 'others' => $others];
+        // `lang` / `ai`: this PDF's language when it is an Act PDF, for the header language menu (site.js).
+        return ['title' => $title, 'rows' => $rows, 'back' => $back, 'others' => $others, 'notice' => $notice,
+            'lang' => $lang, 'ai' => !empty($file['ai']),
+            'others_title' => $linked !== null || $foundDoc !== null ? 'Other PDFs of this document' : 'Other PDFs of this Act'];
     }
 
     /**
-     * The /pdf URL of the PDF stored at $path with checksum $sha: an Act's own PDF (its canonical URL) or
-     * a linked document of the Act whose folder holds it. Null when it has none.
+     * The notice the download page of an AI translation shows above Open / Download (owner, 2026-11-25), e.g.
+     * "Please note: you are about to open or download the Gujarati AI translation of this Act. …".
+     */
+    public static function aiNotice(string $lang): string
+    {
+        $name = ucfirst(preg_replace('/-ai$/', '', Content::AI_LANGUAGES[$lang] ?? '') ?: 'AI');
+        return "Please note: you are about to open or download the $name translation of this Act. It was made by AI: "
+            . 'it is not official, not issued or certified by the Government of India, and not yet reviewed. '
+            . 'Only the official PDF of the Act is the authoritative text.';
+    }
+
+    /**
+     * The /pdf URL of the PDF stored at $path with checksum $sha: an Act's own PDF (its canonical URL), or a
+     * document the Act whose folder holds it links from a tab, a section or a schedule. Null when it has none.
      */
     private function hrefOf(string $path, string $sha): ?string
     {
@@ -302,7 +380,8 @@ final class FileController extends Controller
                 return $this->canonicalOf($act, $file);
             }
         }
-        return $this->content->linkedHref($act, $sha, array_keys(ActController::TABS));
+        $link = $this->content->pdfLinks($act, array_keys(ActController::TABS))[$sha] ?? null;
+        return $link === null ? null : (string) $link['href'];
     }
 
     /**
@@ -389,7 +468,7 @@ final class FileController extends Controller
             'download' => Url::pdf(['href' => $self], true),
             'wantsDownload' => $download,
             'wrong' => $wrong,
-            'info' => $info + ['title' => $name, 'rows' => [], 'back' => Url::home(), 'others' => []],
+            'info' => $info + ['title' => $name, 'rows' => [], 'back' => Url::home(), 'others' => [], 'notice' => '', 'lang' => '', 'ai' => false],
         ], [
             'title' => 'Download PDF: ' . ($info['title'] ?? $name),
             'robots' => 'noindex, nofollow',

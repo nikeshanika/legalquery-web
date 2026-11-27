@@ -94,7 +94,7 @@ final class ActController extends Controller
             'Sections' => (string) count($row['sections']),
             'Schedules' => (string) count($row['schedules']),
             'Status' => $row['repeal_status'] === 'not_repealed' ? 'Not repealed' : '',
-            'Last checked on India Code' => format_date($row['last_checked_at']),
+            'Last checked' => format_date($row['last_checked_at']),
         ], fn(string $v): bool => $v !== '' && $v !== '0');
         $this->view->page('act-details', [
             'act' => $row,
@@ -178,8 +178,8 @@ final class ActController extends Controller
     }
 
     /**
-     * Sections or schedules from act.json with their text (their own files) added; an entry whose
-     * file is missing is kept as it is and shows "no text".
+     * Sections or schedules from act.json with their text (their own files) added, each linked PDF with
+     * its /pdf URL (`href`); an entry whose file is missing is kept as it is and shows "no text".
      *
      * @param array<string, mixed> $act act.json
      * @param string $kind SECTION or SCHEDULE
@@ -189,9 +189,24 @@ final class ActController extends Controller
      */
     private function withText(array $act, string $kind, array $list): array
     {
+        $links = null;
         return array_map(
-            fn(array $entry): array => $this->content->provision($act['jurisdiction'], $act['slug'], $kind, $entry['slug'])
-                ?? $entry + ['kind' => $kind],
+            function (array $entry) use ($act, $kind, &$links): array {
+                $item = $this->content->provision($act['jurisdiction'], $act['slug'], $kind, $entry['slug']);
+                if ($item === null) {
+                    return $entry + ['kind' => $kind];
+                }
+                // Each linked PDF's one /pdf URL (Content::pdfLinks): its tab's, or by the first section linking it.
+                foreach ($item['linked'] ?? [] as $i => $doc) {
+                    foreach ((array) ($doc['files'] ?? []) as $n => $file) {
+                        $links ??= $this->content->pdfLinks($act, array_keys(self::TABS));
+                        if (isset($links[$file['sha256'] ?? ''])) {
+                            $item['linked'][$i]['files'][$n]['href'] = $links[$file['sha256']]['href'];
+                        }
+                    }
+                }
+                return $item;
+            },
             $list,
         );
     }

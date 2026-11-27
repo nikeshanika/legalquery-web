@@ -20,7 +20,7 @@
 <?php if (!empty($item['linked'])): ?>
       <span class="sec-docs" title="Linked rules and notifications"><?= count($item['linked']) ?> docs</span>
 <?php endif; ?>
-      <span class="chev" aria-hidden="true">›</span>
+      <span class="chev" aria-hidden="true"></span>
     </summary>
     <div class="sec-body">
       <?= $view->partial('provision-body', ['act' => $act, 'item' => $item]) ?>
@@ -32,9 +32,9 @@
   <p class="empty pad">No schedules.</p>
 <?php else: ?>
 <?php if (array_filter($act['files'] ?? [], static fn(array $f): bool => isset($f['sha256']))): ?>
-  <p class="empty pad">India Code publishes no section-wise text for this Act. The full text is in the Act's PDF.</p>
+  <p class="empty pad">The full text is in the Act's PDF.</p>
 <?php else: ?>
-  <p class="empty pad">India Code publishes no section-wise text and no PDF for this Act.</p>
+  <p class="empty pad">No text or PDF available.</p>
 <?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>

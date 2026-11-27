@@ -1,0 +1,51 @@
+<!-- LegalQuery Laws logo (design "L", owner 2026-11-25): scales in a gold laurel, for the navy header and footer.
+     Animation "Hawa ka jhonka" (owner, 2026-11-26): every 6 s a gust of wind runs up both branches from the bottom;
+     each leaf bends on its stalk (each leaf has its own angle) and blinks. Still for people who ask for reduced motion. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+<style>
+.leaf { fill:none; stroke:#c2a460; stroke-width:1.105; animation:gust 6s ease-in-out infinite; }
+@keyframes gust {
+  0%, 62%, 100% { transform:rotate(0deg); opacity:1; }
+  70% { transform:rotate(calc(var(--a) * 2deg)); opacity:.55; }
+  78% { transform:rotate(calc(var(--a) * -.8deg)); opacity:.9; }
+  86% { transform:rotate(calc(var(--a) * .6deg)); opacity:.8; }
+}
+@media (prefers-reduced-motion: reduce) { .leaf { animation:none; } }
+</style>
+<path d="M50 90C28 88 12 72 12 50c0-12 5-22 13-29M50 90c22-2 38-18 38-40 0-12-5-22-13-29" fill="none" stroke="#c2a460" stroke-width="1.3" stroke-linecap="round"/>
+<g class="leaf" style="transform-origin:40.9px 88.2px;--a:-5.0;animation-delay:0.00s"><ellipse cx="35.5" cy="89.7" rx="5.6" ry="2.1" transform="rotate(-196 35.5 89.7)"/></g>
+<g class="leaf" style="transform-origin:41.5px 85.9px;--a:6.2;animation-delay:0.07s"><ellipse cx="37.8" cy="81.7" rx="5.6" ry="2.1" transform="rotate(-132 37.8 81.7)"/></g>
+<g class="leaf" style="transform-origin:29.5px 83.5px;--a:5.7;animation-delay:0.14s"><ellipse cx="23.9" cy="83.3" rx="5.6" ry="2.1" transform="rotate(-178 23.9 83.3)"/></g>
+<g class="leaf" style="transform-origin:30.9px 81.4px;--a:-7.5;animation-delay:0.21s"><ellipse cx="28.6" cy="76.3" rx="5.6" ry="2.1" transform="rotate(-114 28.6 76.3)"/></g>
+<g class="leaf" style="transform-origin:20.2px 75.5px;--a:6.8;animation-delay:0.28s"><ellipse cx="14.9" cy="73.6" rx="5.6" ry="2.1" transform="rotate(-160 14.9 73.6)"/></g>
+<g class="leaf" style="transform-origin:22.1px 74.0px;--a:-7.4;animation-delay:0.35s"><ellipse cx="21.5" cy="68.4" rx="5.6" ry="2.1" transform="rotate(-96 21.5 68.4)"/></g>
+<g class="leaf" style="transform-origin:13.7px 65.0px;--a:-5.0;animation-delay:0.42s"><ellipse cx="9.3" cy="61.6" rx="5.6" ry="2.1" transform="rotate(-142 9.3 61.6)"/></g>
+<g class="leaf" style="transform-origin:16.0px 64.2px;--a:6.8;animation-delay:0.49s"><ellipse cx="17.2" cy="58.7" rx="5.6" ry="2.1" transform="rotate(-78 17.2 58.7)"/></g>
+<g class="leaf" style="transform-origin:10.8px 53.1px;--a:7.2;animation-delay:0.56s"><ellipse cx="7.7" cy="48.5" rx="5.6" ry="2.1" transform="rotate(-124 7.7 48.5)"/></g>
+<g class="leaf" style="transform-origin:13.3px 53.0px;--a:7.4;animation-delay:0.63s"><ellipse cx="16.1" cy="48.2" rx="5.6" ry="2.1" transform="rotate(-60 16.1 48.2)"/></g>
+<g class="leaf" style="transform-origin:11.8px 40.9px;--a:-6.3;animation-delay:0.70s"><ellipse cx="10.3" cy="35.5" rx="5.6" ry="2.1" transform="rotate(-106 10.3 35.5)"/></g>
+<g class="leaf" style="transform-origin:14.1px 41.5px;--a:-7.5;animation-delay:0.77s"><ellipse cx="18.3" cy="37.8" rx="5.6" ry="2.1" transform="rotate(-42 18.3 37.8)"/></g>
+<g class="leaf" style="transform-origin:16.5px 29.5px;--a:7.9;animation-delay:0.84s"><ellipse cx="16.7" cy="23.9" rx="5.6" ry="2.1" transform="rotate(-88 16.7 23.9)"/></g>
+<g class="leaf" style="transform-origin:18.6px 30.9px;--a:6.3;animation-delay:0.91s"><ellipse cx="23.7" cy="28.6" rx="5.6" ry="2.1" transform="rotate(-24 23.7 28.6)"/></g>
+<g class="leaf" style="transform-origin:24.5px 20.2px;--a:-6.5;animation-delay:0.98s"><ellipse cx="26.4" cy="14.9" rx="5.6" ry="2.1" transform="rotate(-70 26.4 14.9)"/></g>
+<g class="leaf" style="transform-origin:26.0px 22.1px;--a:-5.3;animation-delay:1.05s"><ellipse cx="31.6" cy="21.5" rx="5.6" ry="2.1" transform="rotate(-6 31.6 21.5)"/></g>
+<g class="leaf" style="transform-origin:59.1px 88.2px;--a:-5.3;animation-delay:0.00s"><ellipse cx="64.5" cy="89.7" rx="5.6" ry="2.1" transform="rotate(16 64.5 89.7)"/></g>
+<g class="leaf" style="transform-origin:58.5px 85.9px;--a:-7.8;animation-delay:0.07s"><ellipse cx="62.2" cy="81.7" rx="5.6" ry="2.1" transform="rotate(-48 62.2 81.7)"/></g>
+<g class="leaf" style="transform-origin:70.5px 83.5px;--a:-6.7;animation-delay:0.14s"><ellipse cx="76.1" cy="83.3" rx="5.6" ry="2.1" transform="rotate(-2 76.1 83.3)"/></g>
+<g class="leaf" style="transform-origin:69.1px 81.4px;--a:5.9;animation-delay:0.21s"><ellipse cx="71.4" cy="76.3" rx="5.6" ry="2.1" transform="rotate(-66 71.4 76.3)"/></g>
+<g class="leaf" style="transform-origin:79.8px 75.5px;--a:-7.7;animation-delay:0.28s"><ellipse cx="85.1" cy="73.6" rx="5.6" ry="2.1" transform="rotate(-20 85.1 73.6)"/></g>
+<g class="leaf" style="transform-origin:77.9px 74.0px;--a:5.9;animation-delay:0.35s"><ellipse cx="78.5" cy="68.4" rx="5.6" ry="2.1" transform="rotate(-84 78.5 68.4)"/></g>
+<g class="leaf" style="transform-origin:86.3px 65.0px;--a:-6.5;animation-delay:0.42s"><ellipse cx="90.7" cy="61.6" rx="5.6" ry="2.1" transform="rotate(-38 90.7 61.6)"/></g>
+<g class="leaf" style="transform-origin:84.0px 64.2px;--a:5.8;animation-delay:0.49s"><ellipse cx="82.8" cy="58.7" rx="5.6" ry="2.1" transform="rotate(-102 82.8 58.7)"/></g>
+<g class="leaf" style="transform-origin:89.2px 53.1px;--a:-5.0;animation-delay:0.56s"><ellipse cx="92.3" cy="48.5" rx="5.6" ry="2.1" transform="rotate(-56 92.3 48.5)"/></g>
+<g class="leaf" style="transform-origin:86.7px 53.0px;--a:-7.4;animation-delay:0.63s"><ellipse cx="83.9" cy="48.2" rx="5.6" ry="2.1" transform="rotate(-120 83.9 48.2)"/></g>
+<g class="leaf" style="transform-origin:88.2px 40.9px;--a:-7.3;animation-delay:0.70s"><ellipse cx="89.7" cy="35.5" rx="5.6" ry="2.1" transform="rotate(-74 89.7 35.5)"/></g>
+<g class="leaf" style="transform-origin:85.9px 41.5px;--a:-5.8;animation-delay:0.77s"><ellipse cx="81.7" cy="37.8" rx="5.6" ry="2.1" transform="rotate(-138 81.7 37.8)"/></g>
+<g class="leaf" style="transform-origin:83.5px 29.5px;--a:6.5;animation-delay:0.84s"><ellipse cx="83.3" cy="23.9" rx="5.6" ry="2.1" transform="rotate(-92 83.3 23.9)"/></g>
+<g class="leaf" style="transform-origin:81.4px 30.9px;--a:6.5;animation-delay:0.91s"><ellipse cx="76.3" cy="28.6" rx="5.6" ry="2.1" transform="rotate(-156 76.3 28.6)"/></g>
+<g class="leaf" style="transform-origin:75.5px 20.2px;--a:5.3;animation-delay:0.98s"><ellipse cx="73.6" cy="14.9" rx="5.6" ry="2.1" transform="rotate(-110 73.6 14.9)"/></g>
+<g class="leaf" style="transform-origin:74.0px 22.1px;--a:-7.8;animation-delay:1.05s"><ellipse cx="68.4" cy="21.5" rx="5.6" ry="2.1" transform="rotate(-174 68.4 21.5)"/></g>
+<g transform="translate(29 27) scale(1.75)" fill="none" stroke="#ffffff" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 3v17M7 20h10M5 7h14M5 7l-3 7a3 3 0 0 0 6 0L5 7zM19 7l-3 7a3 3 0 0 0 6 0l-3-7z"/>
+</g>
+</svg>

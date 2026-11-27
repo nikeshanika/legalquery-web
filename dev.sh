@@ -8,8 +8,9 @@
 #   ./dev.sh tunnel   serve through the dev tunnel TUNNEL (default legalquery-web): the same public URL
 #                     every day, used as SITE_URL. Creates the tunnel (anonymous access, port PORT) on
 #                     first use; Microsoft deletes a tunnel after 30 days without use.
-# SCRAPER_DIR (default ../indiacode-scraper), LQAI_DIR (default ../legalquery-ai), TRANSLATIONS_DIR
-# (default ../indiacode/translations), HOST (default localhost) and PORT (default 8800) can be
+# SCRAPER_DIR (default ../indiacode-scraper), LQAI_DIR (default ../legalquery-ai), TRANSLATIONS_TEXT_DIR
+# (default ../translation-ledger/text: the AI translations' translation.json + document.rag.json; the site's own
+# ./translations folder holds only their PDFs), HOST (default localhost) and PORT (default 8800) can be
 # overridden. LQAI_SKIP_LOAD=1 skips the PostgreSQL load.
 # HOST=0.0.0.0 ./dev.sh serve  makes it reachable from other machines on the network.
 # The site itself never reads PostgreSQL: the load only feeds the legalquery-ai chunk store.
@@ -18,7 +19,7 @@ cd "$(dirname "$0")"
 ROOT="$(pwd)"
 SCRAPER_DIR="${SCRAPER_DIR:-$ROOT/../indiacode-scraper}"
 LQAI_DIR="${LQAI_DIR:-$ROOT/../legalquery-ai}"
-TRANSLATIONS_DIR="${TRANSLATIONS_DIR:-$ROOT/../indiacode/translations}"
+TRANSLATIONS_TEXT_DIR="${TRANSLATIONS_TEXT_DIR:-$ROOT/../translation-ledger/text}"
 HOST="${HOST:-localhost}"
 PORT="${PORT:-8800}"
 TUNNEL="${TUNNEL:-legalquery-web}"
@@ -39,12 +40,13 @@ load_db() {
     return 0
   fi
   (cd "$LQAI_DIR" && LQAI_CONTENT_DIR="$ROOT/content" .venv/bin/lqai load)
-  # AI translations made in the indiacode project (read only). Translations of Acts not exported yet are
-  # kept and attach on a later run.
-  if [ -d "$TRANSLATIONS_DIR" ]; then
-    (cd "$LQAI_DIR" && .venv/bin/lqai load-translations --dir "$TRANSLATIONS_DIR")
+  # Text of the AI translations staged by ../translation-ledger (read only; their PDFs are in ./translations).
+  # Translations of Acts not exported yet are kept and attach on a later run. A translation whose folder is gone
+  # is deleted from PostgreSQL, so this must be the folder with the JSON files.
+  if [ -d "$TRANSLATIONS_TEXT_DIR" ]; then
+    (cd "$LQAI_DIR" && .venv/bin/lqai load-translations --dir "$TRANSLATIONS_TEXT_DIR")
   else
-    echo "no translations at $TRANSLATIONS_DIR: translation load skipped" >&2
+    echo "no translation text at $TRANSLATIONS_TEXT_DIR: translation load skipped" >&2
   fi
 }
 

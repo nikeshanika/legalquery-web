@@ -18,7 +18,6 @@
 <?php foreach ($rows as $label => $value): ?>
         <tr><th scope="row"><?= e($label) ?></th><td><?= e($value) ?></td></tr>
 <?php endforeach; ?>
-        <tr><th scope="row">Source</th><td>India Code, Government of India</td></tr>
       </tbody>
     </table>
   </div>

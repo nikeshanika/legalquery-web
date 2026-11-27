@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## What this project is
 
-**legalquery-web** — the LegalQuery Laws site (Central Acts, sections, schedules, rules,
+**legalquery-web** — the LegalQuery site (Central Acts, sections, schedules, rules,
 notifications, PDFs). Plain PHP 8.1+, **no database, no framework, no Composer**. It renders pages
 from `content/`, which the scraper project writes.
 
@@ -37,13 +37,15 @@ Not to be confused with `/Users/user/Nikesh/legalquery` (the Drupal site on port
    are built in `src/Url.php`; follow `docs/URLS.md` (lowercase, no IDs, `/page/N`, 301s).
 2. **One header, one footer.** Shared markup lives in `templates/layout.php` and `templates/partials/`;
    page templates hold only their own content. Styles go in `public/assets/css/site.css`.
-3. **Escape everything** with `e()`. The only exception is `*_html` fields from the export, which the
-   scraper already sanitised.
+3. **Escape everything** with `e()`. The only exceptions are `*_html` fields from the export, which the
+   scraper already sanitised, and the policy pages' text in `pages/<slug>.html` (in git, written by us:
+   headings, paragraphs, lists and mailto links only; shown by `PageController`).
 4. PDFs are served by checksum only (`/files/{sha256}/{name}.pdf`); the name part is never a path.
-5. Page layout and content follow India Code (indiacode.gov.in); only the **colours** come from
-   legalquery.in. The site is separate: no links to legalquery.in pages (menu, footer, "Ask a lawyer",
-   Login). Show "Source: India Code, Government of India" **as plain text**; no government emblem or
-   India Code logo. **No India Code URL anywhere** (pages, JSON-LD, content; owner 2026-11-03).
+5. Look: design "L" (owner approved 2026-11-25): the plain reference-site design "W" (white page, thin grey
+   rules, blue links, serif headings, system fonts, no decoration) with a navy header and footer (#1b2a41), a
+   gold rule (#c2a460) and the gold laurel logo (`public/assets/img/logo.svg`). Content follows India Code (indiacode.gov.in). The site is separate: no links to legalquery.in pages (menu, footer, "Ask a lawyer",
+   Login). Name the source ("India Code, Government of India") **as plain text, in the footer disclaimer only**: the name
+   "India Code" nowhere else in the site's own text (owner, 2026-11-26); no government emblem or India Code logo. **No India Code URL anywhere** (pages, JSON-LD, content; owner 2026-11-03).
    No QR codes (owner, 2026-11-02).
 6. Keep Devanagari intact: UTF-8 everywhere.
 7. Don't commit `content/` (except `slugs.json`) or `config.local.php`.
@@ -53,5 +55,6 @@ Not to be confused with `/Users/user/Nikesh/legalquery` (the Drupal site on port
 ```bash
 ./dev.sh               # export + serve http://localhost:8800
 php tests/run.php      # offline tests
+php -d memory_limit=4G tests/audit-pdfs.php   # after an export: every PDF, link, title, language
 for f in $(find src templates public -name '*.php') router.php config.php; do php -l "$f"; done
 ```

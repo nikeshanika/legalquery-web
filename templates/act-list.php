@@ -1,6 +1,7 @@
 <?php
 /**
- * Paged list of one jurisdiction's Acts, all or one year, with title/number filter.
+ * Paged list of one jurisdiction's Acts, all or one year, with title/number filter: a filter bar and a table
+ * (Year, Act No., Short title, Sections), design "W" (owner 2026-11-25).
  *
  * @var LegalQueryWeb\View $view
  * @var string $heading
@@ -21,39 +22,44 @@ $action = Url::actList($jurisdiction, $year);
 <div class="page-head">
   <h1><?= e($heading) ?></h1>
 <?php if ($jurisdiction === LegalQueryWeb\Jurisdiction::DEFAULT): ?>
-  <p>Acts of Parliament with their full text, sections, schedules, rules, notifications and official PDFs, from India Code.</p>
+  <p>Acts of Parliament with their full text, sections, schedules, rules, notifications and official PDFs.</p>
 <?php else: ?>
-  <p>Acts of <?= e(LegalQueryWeb\Jurisdiction::detail($jurisdiction)) ?> as listed on India Code, with sections where India Code has them, rules, notifications and official PDFs.</p>
+  <p>Acts of <?= e(LegalQueryWeb\Jurisdiction::detail($jurisdiction)) ?>, with sections where available, rules, notifications and official PDFs.</p>
 <?php endif; ?>
 </div>
-<div class="list-layout">
-  <form class="card filter-card" method="get" action="<?= e($action) ?>" role="search">
-    <h2>Filter Acts</h2>
-    <label for="f-q">Title or Act number</label>
-    <input type="search" class="input" id="f-q" name="search" value="<?= e($search) ?>" placeholder="e.g. labour, 37 of 2020">
-    <label for="f-year">Year</label>
-    <select class="input" id="f-year" name="year" data-autosubmit>
-      <option value="">All years (<?= number_format($total_all) ?>)</option>
+<form class="filter-bar" method="get" action="<?= e($action) ?>" role="search">
+  <label for="f-q">Filter</label>
+  <input type="search" class="input" id="f-q" name="search" value="<?= e($search) ?>" placeholder="Title or Act number, e.g. labour, 37 of 2020">
+  <label for="f-year">Year</label>
+  <select class="input" id="f-year" name="year" data-autosubmit>
+    <option value="">All years (<?= number_format($total_all) ?>)</option>
 <?php foreach ($years as $y => $n): ?>
-      <option value="<?= e($y) ?>"<?= (string) $y === $year ? ' selected' : '' ?>><?= e($y) ?> (<?= $n ?>)</option>
+    <option value="<?= e($y) ?>"<?= (string) $y === $year ? ' selected' : '' ?>><?= e($y) ?> (<?= $n ?>)</option>
 <?php endforeach; ?>
-    </select>
-    <button class="btn btn-primary" type="submit">Apply</button>
+  </select>
+  <button class="btn" type="submit">Apply</button>
 <?php if ($search !== '' || $year !== ''): ?>
-    <a class="btn btn-outline" href="<?= e(Url::actList($jurisdiction)) ?>">Reset filters</a>
+  <a href="<?= e(Url::actList($jurisdiction)) ?>">Reset</a>
 <?php endif; ?>
-  </form>
-  <div>
-    <div class="card">
-      <div class="results-bar">
-        <span><?php if ($pager['total']): ?>Showing <b><?= $pager['from'] ?></b>–<b><?= $pager['to'] ?></b> of <b><?= number_format($pager['total']) ?></b> Acts<?php else: ?>No Acts<?php endif; ?></span>
-      </div>
+</form>
+<p class="results-bar"><?php if ($pager['total']): ?>Showing <?= $pager['from'] ?> to <?= $pager['to'] ?> of <?= number_format($pager['total']) ?> Acts<?php else: ?>No Acts<?php endif; ?></p>
 <?php if ($acts): ?>
-      <?= $view->partial('act-rows', ['acts' => $acts]) ?>
-<?php else: ?>
-      <p class="empty pad">No Acts match these filters.</p>
-<?php endif; ?>
-    </div>
-    <?= $view->partial('pager', ['pager' => $pager]) ?>
-  </div>
+<div class="table-wrap">
+  <table class="wikitable">
+    <thead><tr><th scope="col">Year</th><th scope="col">Act No.</th><th scope="col">Short title</th><th scope="col" class="num">Sections</th></tr></thead>
+    <tbody>
+<?php foreach ($acts as $act): ?>
+      <tr>
+        <td class="nowrap"><?= e($act['year']) ?></td>
+        <td class="nowrap"><?= e($act['act_number']) ?></td>
+        <td><a href="<?= e(Url::act($act['jurisdiction'], $act['slug'])) ?>"><?= e($act['title']) ?></a></td>
+        <td class="num"><?= $act['sections'] ? number_format($act['sections']) : '–' ?></td>
+      </tr>
+<?php endforeach; ?>
+    </tbody>
+  </table>
 </div>
+<?php else: ?>
+<p class="empty pad">No Acts match these filters.</p>
+<?php endif; ?>
+<?= $view->partial('pager', ['pager' => $pager]) ?>

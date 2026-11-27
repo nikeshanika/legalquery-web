@@ -38,7 +38,7 @@ final class CategoryController extends Controller
             'categories' => $this->content->categories(Jurisdiction::DEFAULT, array_keys(ActController::TABS)),
         ], [
             'title' => $this->withPage("$label of Central Acts", $number),
-            'description' => $this->describePage("Central Acts of India with $label made under them, with official PDFs from India Code.", $number),
+            'description' => $this->describePage("Central Acts of India with $label made under them, with official PDFs.", $number),
             'canonical' => $link($number),
             'prev' => $pager['prev'],
             'next' => $pager['next'],

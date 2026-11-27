@@ -21,12 +21,20 @@ final class Content
     /** @var array<string, mixed> */
     private array $cache = [];
 
-    /** AI translations shown as extra Act PDFs (demo, owner 2026-11-21): language => URL word. */
-    public const AI_LANGUAGES = ['hi' => 'hindi-ai', 'bn' => 'bengali-ai'];
+    /**
+     * AI translations shown as extra Act PDFs (demo, owner 2026-11-21): language => file name word, in popup
+     * order. Every language of the translation handover (2026-11-25); keep in step with the ledger's
+     * SITE_LANGUAGES (../translation-ledger/ledger.py).
+     */
+    public const AI_LANGUAGES = [
+        'hi' => 'hindi-ai', 'bn' => 'bengali-ai', 'mr' => 'marathi-ai', 'gu' => 'gujarati-ai', 'kn' => 'kannada-ai',
+        'ml' => 'malayalam-ai', 'or' => 'odia-ai', 'pa' => 'punjabi-ai', 'ta' => 'tamil-ai', 'te' => 'telugu-ai',
+    ];
 
     /**
-     * @param string $aiDir The indiacode project's `translations/` folder (read only), or '' = off.
-     *   An Act PDF with checksum S gets an AI translation in language L when S/L/v1/document.pdf exists.
+     * @param string $aiDir The site's `translations/` folder (filled by ../translation-ledger `stage`), or '' = off.
+     *   An Act PDF with checksum S gets an AI translation in language L when S/L/vN/document.pdf exists
+     *   (the highest N).
      * @param list<string> $aiOnly Only these source checksums (empty = every one found).
      */
     public function __construct(private readonly string $dir, private readonly string $aiDir = '', private readonly array $aiOnly = [])
@@ -97,8 +105,8 @@ final class Content
                 continue;
             }
             foreach (self::AI_LANGUAGES as $lang => $word) {
-                $path = "$this->aiDir/$source/$lang/v1/document.pdf";
-                if (isset($out[$lang]) || !is_file($path)) {
+                $path = isset($out[$lang]) ? null : $this->aiNewest("$this->aiDir/$source/$lang");
+                if ($path === null) {
                     continue;
                 }
                 $base = preg_replace('/\.pdf$/i', '', (string) ($file['filename'] ?? 'document')) ?: 'document';
@@ -113,6 +121,20 @@ final class Content
             }
         }
         return array_values($out);
+    }
+
+    /** document.pdf of the highest vN folder in $langDir that has one, or null. */
+    private function aiNewest(string $langDir): ?string
+    {
+        $best = null;
+        $bestN = 0;
+        foreach (glob("$langDir/v*", GLOB_ONLYDIR) ?: [] as $dir) {
+            if (preg_match('/\/v([1-9]\d*)$/', $dir, $m) && (int) $m[1] > $bestN && is_file("$dir/document.pdf")) {
+                $bestN = (int) $m[1];
+                $best = "$dir/document.pdf";
+            }
+        }
+        return $best;
     }
 
     /**
@@ -181,7 +203,8 @@ final class Content
     }
 
     /**
-     * The file of a linked-document tab whose `f` is $f (see tab()), or null.
+     * The file of a linked-document tab whose `f` is $f (see tab()), or null. Adds `title`, `date`, `tab` and `item_files`
+     * (every file of that document, for its other-language PDFs on the download page).
      *
      * @return array<string, mixed>|null
      */
@@ -190,7 +213,7 @@ final class Content
         foreach ($this->tab($jurisdiction, $act, $tab) as $item) {
             foreach ($item['files'] ?? [] as $file) {
                 if (($file['f'] ?? null) === $f) {
-                    return $file + ['title' => (string) ($item['title'] ?? ''), 'tab' => $tab];
+                    return $file + ['title' => (string) ($item['title'] ?? ''), 'date' => (string) ($item['date'] ?? ''), 'tab' => $tab, 'item_files' => $item['files']];
                 }
             }
         }
@@ -198,23 +221,85 @@ final class Content
     }
 
     /**
-     * The /pdf URL of the linked document with checksum $sha256 in one of the Act's tabs, or null.
+     * Every PDF linked from the Act's tabs or from its sections and schedules, by checksum, each with `href`,
+     * its one /pdf URL. A PDF in a tab ($tabs, in this order) keeps that tab's URL (Url::linkedPdf). One linked
+     * only from sections or schedules gets /pdf?j=…&a=…&s={provision}&f={file} (Url::provisionPdf; owner,
+     * 2026-11-26), from the first section (else schedule) that links it, and also `slug` (that provision),
+     * `f`, `doc` (the linked document there: title, date, files …) and `file`.
+     *
+     * `f` is chosen as in tab(): the file name on disk without ".pdf", lowercased; when two different files of
+     * one provision would get the same `f`, the later one gets its folder in front, then `-2`, `-3` …. Only
+     * provisions with documents (`docs` in act.json) are read, in act.json's order, so URLs stay the same
+     * between requests.
      *
      * @param array<string, mixed> $act act.json (with `jurisdiction`)
-     * @param list<string> $tabs the linked-document tabs to look in, in order
+     * @param list<string> $tabs the linked-document tabs, in order
+     *
+     * @return array<string, array<string, mixed>>
      */
-    public function linkedHref(array $act, string $sha256, array $tabs): ?string
+    public function pdfLinks(array $act, array $tabs): array
     {
+        [$j, $a] = [(string) $act['jurisdiction'], (string) $act['slug']];
+        $key = "links:$j/$a";
+        if (isset($this->cache[$key])) {
+            return $this->cache[$key];
+        }
+        $links = [];
         foreach ($tabs as $tab) {
             if (empty($act['tabs'][$tab])) {
                 continue;
             }
-            foreach ($this->tab((string) $act['jurisdiction'], (string) $act['slug'], $tab) as $item) {
+            foreach ($this->tab($j, $a, $tab) as $item) {
                 foreach ($item['files'] ?? [] as $file) {
-                    if (($file['sha256'] ?? null) === $sha256 && isset($file['href'])) {
-                        return (string) $file['href'];
+                    if (isset($file['href'], $file['sha256'])) {
+                        $links[(string) $file['sha256']] ??= ['href' => (string) $file['href']];
                     }
                 }
+            }
+        }
+        foreach (['SECTION' => 'sections', 'SCHEDULE' => 'schedules'] as $kind => $list) {
+            foreach ((array) ($act[$list] ?? []) as $entry) {
+                if (empty($entry['docs']) || !isset($entry['slug'])) {
+                    continue;
+                }
+                $slug = (string) $entry['slug'];
+                $byName = [];
+                foreach ((array) ($this->provision($j, $a, $kind, $slug)['linked'] ?? []) as $doc) {
+                    foreach ((array) ($doc['files'] ?? []) as $file) {
+                        $sha = (string) ($file['sha256'] ?? '');
+                        $path = (string) ($file['path'] ?? '');
+                        if ($sha === '' || isset($links[$sha]) || !preg_match('#/pdf/(?:([^/]+)/)?([A-Za-z0-9._-]+)\.pdf$#i', $path, $m)) {
+                            continue;
+                        }
+                        $f = strtolower($m[2]);
+                        if (isset($byName[$f]) && $byName[$f] !== $path) {
+                            $f = strtolower(($m[1] !== '' ? $m[1] : 'pdf') . '-' . $m[2]);
+                            for ($n = 2, $base = $f; isset($byName[$f]) && $byName[$f] !== $path; $n++) {
+                                $f = "$base-$n";
+                            }
+                        }
+                        $byName[$f] = $path;
+                        $links[$sha] = ['href' => Url::provisionPdf($j, $a, $slug, $f), 'slug' => $slug, 'f' => $f, 'doc' => (array) $doc, 'file' => $file];
+                    }
+                }
+            }
+        }
+        return $this->cache[$key] = $links;
+    }
+
+    /**
+     * The document linked only from provision $slug whose `f` is $f (pdfLinks()), or null.
+     *
+     * @param array<string, mixed> $act act.json (with `jurisdiction`)
+     * @param list<string> $tabs the linked-document tabs, in order
+     *
+     * @return array<string, mixed>|null
+     */
+    public function provisionFile(array $act, array $tabs, string $slug, string $f): ?array
+    {
+        foreach ($this->pdfLinks($act, $tabs) as $link) {
+            if (($link['slug'] ?? null) === $slug && $link['f'] === $f) {
+                return $link;
             }
         }
         return null;
@@ -317,9 +402,10 @@ final class Content
             return null;
         }
         $relative = $this->read('files/' . substr($sha256, 0, 2) . '.json')[$sha256] ?? null;
-        // The file index is the export's own, but its paths still must stay inside content/.
+        // The file index is the export's own, but its paths still must stay inside content/: no "." or ".."
+        // folder. Dots inside a name are fine ("…_dt_18..11.2019.pdf", "…30.05.2018...hindi.pdf").
         if (!is_string($relative) || !preg_match('#^(?:[A-Za-z0-9._-]+/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\.pdf$#', $relative)
-            || str_contains($relative, '..')) {
+            || preg_match('#(?:^|/)\.{1,2}/#', $relative)) {
             return null;
         }
         $path = $this->dir . '/' . $relative;

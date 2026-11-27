@@ -3,7 +3,8 @@
  * The link to a document's PDF: "View" goes to its download page (/pdf?…; the PDF question, then Open /
  * Download; owner, 2026-11-24, no popup). In more than one language: one link per language (English,
  * हिन्दी, English + हिन्दी …; pdf_choices()). A file that is not archived yet gets no link: no links to
- * India Code (owner, 2026-11-03).
+ * India Code (owner, 2026-11-03). `data-lang` (the PDF's language): on pages without an Act PDF, the header language
+ * menu lists only these languages (site.js; owner, 2026-11-26).
  *
  * @var LegalQueryWeb\View $view
  * @var list<array{filename: string, language: string, size: ?int, sha256?: string}> $files
@@ -26,6 +27,6 @@ $langOf = static fn(array $f): string => in_array($f['lang'], ['en', 'bi', 'unkn
 ?>
 <span class="views">
 <?php foreach ($choices as $file): ?>
-  <a class="view" href="<?= e(Url::pdf($file)) ?>" rel="nofollow" title="<?= e($title($file)) ?>"<?= $several ? $langOf($file) : '' ?>><?= e($several ? $file['label'] : 'View') ?></a>
+  <a class="view" href="<?= e(Url::pdf($file)) ?>" rel="nofollow" title="<?= e($title($file)) ?>" data-lang="<?= e($file['lang']) ?>"<?= $several ? $langOf($file) : '' ?>><?= e($several ? $file['label'] : 'View') ?></a>
 <?php endforeach; ?>
 </span>

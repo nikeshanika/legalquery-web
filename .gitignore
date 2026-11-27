@@ -3,6 +3,9 @@
 /content/*
 !/content/slugs.json
 
+# AI translation files, copied here by ../translation-ledger (ledger.py stage). Not in git, like content/.
+/translations/
+
 # Local settings (site_url on the server, etc.)
 /config.local.php
 

@@ -26,6 +26,9 @@ since 2026-11-16. Format 3 = format 2 plus one folder per jurisdiction listed in
 - **No India Code URL anywhere in `content/`** (owner, 2026-11-03). India Code Act links in that HTML point to
   this site's Act page (`/acts/<j>/<slug>`); other India Code links keep only their text; the domain
   written as text is removed.
+- **No "India Code" name in an Act's `summary_html` / `history_html`** (owner, 2026-11-26): the export removes
+  the mention and keeps the sentence ("Source: India Code and X" → "Source: X", "Act ID (India Code)" → "Act ID").
+  File names such as `indiacode30.pdf` stay.
 - India Code HTML (section bodies, footnotes, summary, history) is sanitised by the export
   (scripts, styles, iframes, `on*` handlers and `javascript:` URLs removed). Templates print
   `*_html` fields as they are; everything else is escaped with `e()`.
@@ -92,7 +95,7 @@ content/
 | `enactment_date`, `enforcement_date` | ISO date or '' |
 | `ministry`, `department` | |
 | `repeal_status` | `not_repealed` or '' (not crawl state) |
-| `summary_html`, `history_html` | sanitised HTML or '' |
+| `summary_html`, `history_html` | sanitised HTML or '', without the name "India Code" (since 2026-11-26) |
 | `last_checked_at` | UTC ISO-8601 |
 | `links_complete` | false while Rules/Notifications/... are still being collected |
 | `original` | `null`, or the Act this one is a copy of (`dc.identifier.refact`, e.g. a Central Act listed under a UT; since 2026-11-18): `{record_id, title, jurisdiction, path}` (`path` = its page here, '' if it is not exported). Then `files`, `sections`, `schedules` and their `linked` documents are the **original's**, as India Code shows them; `tabs` and the other fields are this Act's own. The site does not show the original (owner, 2026-11-18) |

@@ -120,6 +120,6 @@ final class SeoController extends Controller
     public function robots(): void
     {
         header('Content-Type: text/plain; charset=utf-8');
-        echo "User-agent: *\nDisallow: /search\nDisallow: /pdf\nDisallow: /files/\n\nSitemap: ", $this->view->absolute('/sitemap.xml'), "\n";
+        echo "User-agent: *\nDisallow: /search\nDisallow: /pdf\nDisallow: /files/\nDisallow: /*.pdf$\n\nSitemap: ", $this->view->absolute('/sitemap.xml'), "\n";
     }
 }

@@ -11,7 +11,7 @@ use LegalQueryWeb\Url;
 
 /**
  * Home page (laid out like India Code's home): search band, counts, latest Acts, browse by year,
- * browse by category. The lists are Central Acts (Jurisdiction::DEFAULT); the search and the State Acts
+ * browse by category, browse by State. The lists are Central Acts (Jurisdiction::DEFAULT); the search and the State Acts
  * card cover the States and UTs too.
  */
 final class HomeController extends Controller
@@ -21,6 +21,7 @@ final class HomeController extends Controller
         $acts = $this->content->acts(Jurisdiction::DEFAULT);
         $manifest = $this->content->manifest();
         $counts = $this->content->counts(Jurisdiction::DEFAULT);
+        $states = $this->states();
         $this->view->page('home', [
             'counts' => [
                 'acts' => count($acts),
@@ -34,13 +35,35 @@ final class HomeController extends Controller
             'year_count' => count($this->content->years(Jurisdiction::DEFAULT)),
             'categories' => $this->content->categories(Jurisdiction::DEFAULT, array_keys(ActController::TABS)),
             'updated' => (string) ($manifest['exported_at'] ?? ''),
+            'states' => array_slice($states, 0, self::STATES_SHOWN),
+            'state_count' => count($states),
         ], [
             'title' => 'Laws of India – Central and State Acts, sections and PDFs',
             'description' => 'Read Central Acts and Acts of States and Union Territories section by section, '
-                . 'with schedules, rules, notifications and official PDFs from India Code.',
+                . 'with schedules, rules, notifications and official PDFs.',
             'nav' => 'home',
-            'schema' => [Seo::website($this->config['site_name'] . ' Laws', $this->absolute())],
+            'schema' => [Seo::website($this->config['site_name'], $this->absolute())],
         ]);
+    }
+
+    /** States / UTs named in the home page's "Browse by State" box; the rest are behind "All … →". */
+    private const STATES_SHOWN = 10;
+
+    /**
+     * The exported States and Union Territories, the one with the most Acts first (then A to Z).
+     *
+     * @return list<array{code: string, name: string, acts: int}>
+     */
+    private function states(): array
+    {
+        $states = [];
+        foreach (Jurisdiction::codes() as $code) {
+            if ($code !== Jurisdiction::DEFAULT) {
+                $states[] = ['code' => $code, 'name' => Jurisdiction::detail($code), 'acts' => (int) ($this->content->counts($code)['acts'] ?? 0)];
+            }
+        }
+        usort($states, static fn(array $a, array $b): int => $b['acts'] <=> $a['acts'] ?: strcasecmp($a['name'], $b['name']));
+        return $states;
     }
 
     private function stateActs(): int

@@ -32,6 +32,14 @@ final class Url
     }
 
     /**
+     * A policy page, e.g. /privacy-policy (PageController::PAGES keys).
+     */
+    public static function page(string $slug): string
+    {
+        return '/' . $slug;
+    }
+
+    /**
      * Central Acts that have one kind of linked document, e.g. /rules (ActController::TABS keys).
      */
     public static function category(string $tab): string
@@ -98,6 +106,16 @@ final class Url
     }
 
     /**
+     * The download page / PDF of a document linked only from sections or schedules (in none of the Act's
+     * tabs): /pdf?j=…&a=…&s={provision}&f={file}, `s` = the first section (else schedule) that links it
+     * (Content::pdfLinks gives `s` and `f`; owner, 2026-11-26).
+     */
+    public static function provisionPdf(string $jurisdiction, string $act, string $provision, string $file, bool $download = false): string
+    {
+        return self::pdfQuery(['j' => $jurisdiction, 'a' => $act, 's' => $provision, 'f' => $file], $download);
+    }
+
+    /**
      * /pdf?… with the parameters in this order and empty ones left out: the one form FileController
      * accepts (any other gets a 301 to it).
      *
@@ -118,7 +136,7 @@ final class Url
     }
 
     /**
-     * A PDF's URL: its /pdf URL when it has one (`href`, from ActPdf or Content::tab), else by checksum.
+     * A PDF's URL: its /pdf URL when it has one (`href`, from ActPdf, Content::tab or Content::pdfLinks), else by checksum.
      *
      * @param array<string, mixed> $file
      */

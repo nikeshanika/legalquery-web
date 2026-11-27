@@ -14,7 +14,8 @@ namespace LegalQueryWeb;
  * - the Act's first English PDF (or a PDF of unknown language): no `v`
  * - any other: its language code, `hi`, `bi` (English + Hindi), `gu`, `ml` … (PDF_LANGUAGES)
  * - a second PDF of the same language: `-2`, `-3` … (`en-2`, `hi-2`)
- * - AI translation (demo, `ai_translations_dir`; owner 2026-11-21): `hi-ai`, `bn-ai`, after the official PDFs
+ * - AI translation (demo, `ai_translations_dir`; owner 2026-11-21): `hi-ai`, `bn-ai`, `mr-ai` … (Content::AI_LANGUAGES),
+ *   after the official PDFs
  *
  * Before that (2026-11-19 to 2026-11-24) the PDFs had readable .pdf URLs, kept as 301s (FileController):
  * `{act}`, `{act}-english-hindi`, `{act}-hindi`, `{act}-gujarati` … (`name` of each choice, also the
@@ -66,7 +67,12 @@ final class ActPdf
     }
 
     /** Button text of an AI translation: the language in its own script + "AI translation". */
-    private const AI_LABEL = ['hi' => 'हिन्दी (AI अनुवाद)', 'bn' => 'বাংলা (AI অনুবাদ)'];
+    private const AI_LABEL = [
+        'hi' => 'हिन्दी (AI अनुवाद)', 'bn' => 'বাংলা (AI অনুবাদ)', 'mr' => 'मराठी (AI भाषांतर)',
+        'gu' => 'ગુજરાતી (AI અનુવાદ)', 'kn' => 'ಕನ್ನಡ (AI ಅನುವಾದ)', 'ml' => 'മലയാളം (AI വിവർത്തനം)',
+        'or' => 'ଓଡ଼ିଆ (AI ଅନୁବାଦ)', 'pa' => 'ਪੰਜਾਬੀ (AI ਅਨੁਵਾਦ)', 'ta' => 'தமிழ் (AI மொழிபெயர்ப்பு)',
+        'te' => 'తెలుగు (AI అనువాదం)',
+    ];
 
     /**
      * The Act PDF whose `v` is $v ('' = the first English PDF), or null.

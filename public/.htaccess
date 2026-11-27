@@ -4,6 +4,19 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
+
+  # No bot gets a PDF (owner, 2026-11-25): Google, Bing and other crawlers, scripts (curl, wget, python …)
+  # and requests without a User-Agent get 403 on the PDF download page (/pdf?…), old PDF URLs
+  # (/files/…, /acts/….pdf) and any .pdf. Besides robots.txt (Disallow /pdf, /files/), noindex and the
+  # sum question on the download page (PdfGate).
+  RewriteCond %{HTTP_USER_AGENT} (bot|crawl|spider|slurp|archiver|facebookexternalhit|curl|wget|python|scrapy|httpclient|libwww|java/|go-http|okhttp|axios|node-fetch|headless|phantomjs|puppeteer|playwright|selenium) [NC,OR]
+  RewriteCond %{HTTP_USER_AGENT} ^-?$
+  RewriteRule (^pdf$|^files/|\.pdf$) - [F,L]
+
+  # A real .pdf file under public/ (there should be none) is never served as it is.
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule \.pdf$ - [F,L]
+
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^ index.php [L,QSA]
 </IfModule>
